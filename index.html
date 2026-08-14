@@ -3,282 +3,481 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartPark Enterprise v8.0</title>
-    <link rel="stylesheet" href="style.css">
+    <title>EcoGate.Network</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --card-bg: #121826;
+            --card-border: #1e293b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f59e0b;
+            --text-primary: #f8fafc;
+            --text-secondary: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* HEADER & NAVBAR */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: #84cc16;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            background: #1e293b;
+            color: var(--text-primary);
+            border: 1px solid #334155;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #334155;
+        }
+
+        .btn-green {
+            background: #bef264;
+            color: #0f172a;
+            border: none;
+        }
+
+        .btn-green:hover {
+            background: #a3e635;
+        }
+
+        .btn-blue {
+            background: #0284c7;
+            color: white;
+            border: none;
+        }
+
+        .conn-status {
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .status-dot.active {
+            background: var(--accent-green);
+        }
+
+        /* DASHBOARD GRID */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 20px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-box {
+            background: #0f172a;
+            border-left: 4px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .status-box.alarm {
+            border-left-color: var(--accent-red);
+        }
+
+        .status-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-main {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-top: 6px;
+            color: var(--accent-green);
+        }
+
+        .status-box.alarm .status-main {
+            color: var(--accent-red);
+        }
+
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .number-input {
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            width: 80px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* TABLES */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .badge-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        .badge-blue { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .badge-orange { background: rgba(245, 158, 11, 0.2); color: #fde047; }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+    </style>
 </head>
 <body>
 
-    <div id="router-view"></div>
-
-    <template id="page-login">
-        <div class="auth-wrapper">
-            <div class="auth-card">
-                <div class="auth-header">
-                    <h2>💎 SmartPark Enterprise</h2>
-                    <p>IoT-Driven Facility Management Matrix</p>
-                </div>
-                
-                <div class="auth-tabs">
-                    <button id="tab-login" class="auth-tab active" onclick="setAuthMode('login')">Sign In</button>
-                    <button id="tab-signup" class="auth-tab" onclick="setAuthMode('signup')">Register Driver</button>
-                </div>
-
-                <form id="auth-form" onsubmit="handleAuthSubmit(event)">
-                    <div class="form-group">
-                        <label for="username">System Handle Identifier</label>
-                        <input type="text" id="username" required placeholder="Enter username...">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="password">Security Access Key</label>
-                        <input type="password" id="password" required placeholder="Enter passcode...">
-                    </div>
-
-                    <div id="signup-only-fields" class="hidden">
-                        <div class="form-group">
-                            <label for="plate">Vehicle Plate Index</label>
-                            <input type="text" id="plate" placeholder="WXM 4231">
-                        </div>
-                        <div class="form-group">
-                            <label for="role">Network Access Tier</label>
-                            <select id="role">
-                                <option value="user">Standard Driver Terminal</option>
-                                <option value="staff">HQ Facility Management Admin</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="auth-submit-btn">Authorize Pipeline Link</button>
-                </form>
+    <!-- NAVBAR -->
+    <header>
+        <div class="logo">EcoGate<span>.Network</span></div>
+        <div class="nav-actions">
+            <button class="btn btn-green" id="connectBtn" onclick="toggleBLE()">
+                ⚡ Connect EcoGate
+            </button>
+            <div class="conn-status">
+                <div class="status-dot" id="connDot"></div>
+                <span id="connText">Disconnected</span>
             </div>
         </div>
-    </template>
+    </header>
 
-    <template id="page-dashboard">
-        <div class="dashboard-layout">
-            <aside class="sidebar">
-                <h2>💎 SmartPark</h2>
-                <nav>
-                    <div class="nav-item active" onclick="switchTab('home')">📊 Home Overview</div>
-                    <div class="nav-item" onclick="switchTab('gate-simulation')">🚗 Physical Gate Entry</div>
-                    <div class="nav-item" onclick="switchTab('topup')">💳 Top-Up Wallet</div>
-                    <div class="nav-item" onclick="switchTab('history')">📜 Ledger History</div>
-                    <div class="nav-item logout" onclick="logout()">Secure Exit</div>
-                </nav>
-            </aside>
-            <main class="main-content">
-                <header class="top-bar">
-                    <h1>Welcome back, <span class="user-display">--</span> <span id="tier-badge" class="tier-badge-pill tier-bronze">Bronze Tier</span></h1>
-                    <div class="profile-pill">
-                        <span>🚗 <span class="plate-display">--</span></span>
-                        <span>🪙 <span class="points-display">0</span> PTS</span>
-                        <span class="balance-badge">$<span class="balance-display">0.00</span></span>
-                    </div>
-                </header>
-
-                <div id="tab-home" class="tab-pane">
-                    <div id="active-session-view" class="hidden">
-                        <div class="driver-split">
-                            <div class="card panel-hero">
-                                <div class="hero-header-flex">
-                                    <h3>Active Lot Loop Analytics</h3>
-                                    <span id="validation-badge" class="badge-discount hidden">RECEIPT VALIDATION APPLIED (-$2.00)</span>
-                                </div>
-                                <div class="metrics">
-                                    <div class="metric">
-                                        <label>Target Bay Node</label>
-                                        <span id="session-bay">--</span>
-                                    </div>
-                                    <div class="metric">
-                                        <label>Live Duration</label>
-                                        <span id="session-duration">00m 00s</span>
-                                    </div>
-                                    <div class="metric">
-                                        <label>Accrued Cost</label>
-                                        <span class="cost-text" id="session-cost">$0.00</span>
-                                    </div>
-                                </div>
-                                <div class="button-row" style="margin-top: 25px; display: flex; gap: 15px;">
-                                    <button class="action-btn validate-btn" onclick="validateMallReceipt()">Scan Mall Shopping Receipt</button>
-                                    <button class="action-btn exit-loop" onclick="simulateExitLoop()">Pay & Actuate Exit Gate</button>
-                                </div>
-                            </div>
-
-                            <div class="card ticket-card holographic-pass" id="digital-ticket-box" onclick="interactWithTransitPass()">
-                                <div class="pass-laser-line" id="scanner-laser"></div>
-                                <div class="pass-header">
-                                    <div>
-                                        <span class="pass-chip"></span>
-                                        <h3>SmartPark Transit Pass</h3>
-                                    </div>
-                                    <span id="ticket-status-flash" class="status-dot">● READY</span>
-                                </div>
-                                <p class="pass-hint">Tap pass to transmit RFID payload to scanner terminal.</p>
-                                <div class="barcode-mesh" id="interactive-barcode-area">
-                                    <span id="barcode-lines">||||| | |||| || ||| || |||| |</span>
-                                    <small id="ticket-id">PASS-FETCHING-OS</small>
-                                </div>
-                                <div class="pass-footer">
-                                    <span>SYSTEM: v8.0 MATRIX</span>
-                                    <span id="pass-timestamp">00:00:00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="no-session-view" class="card">
-                        <h3>No Active Parking Session</h3>
-                        <p style="color:var(--text-muted); margin-bottom: 20px;">Your vehicle is outside our containment networks. Navigate to the Physical Gate Entry tab to route an entryway.</p>
-                    </div>
-                </div>
-
-                <div id="tab-gate-simulation" class="tab-pane hidden">
-                    <div class="card">
-                        <h3>Lot Entrance Loop Terminal</h3>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                            Select an available bay on the real-time floor plan layout map below to pull a ticket and lift the boom barrier.
-                        </p>
-                        <div class="gate-status-banner" id="gate-occupancy-banner">Checking Layout Matrix...</div>
-                        <div class="interactive-map-container">
-                            <h4>📍 Level 1 Parking Bay Node Layout Map</h4>
-                            <div class="mall-parking-grid" id="driver-map-grid"></div>
-                        </div>
-                        <div style="margin-top: 25px;" id="gate-entry-action-block"></div>
-                    </div>
-                </div>
-
-                <div id="tab-topup" class="tab-pane hidden">
-                    <div class="card">
-                        <h3>Refuel Digital Card Balance</h3>
-                        <div class="pill-grid">
-                            <button class="pill-btn" onclick="addFunds(10)">+$10.00</button>
-                            <button class="pill-btn" onclick="addFunds(25)">+$25.00</button>
-                            <button class="pill-btn" onclick="addFunds(50)">+$50.00</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tab-history" class="tab-pane hidden">
-                    <div class="card no-padding">
-                        <table class="premium-table">
-                            <thead>
-                                <tr>
-                                    <th>Reference ID</th>
-                                    <th>Bay Blocked</th>
-                                    <th>Duration Inside</th>
-                                    <th>Settled Cost</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-rows"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </template>
-
-    <template id="page-staff">
-        <div class="staff-layout">
-            <header class="staff-header">
-                <h2>🛡️ SmartPark HQ Command Center <small style="color: var(--danger); font-size: 0.8rem; margin-left: 10px;">v8.0 Enterprise Matrix</small></h2>
-                <div>Admin: <span class="user-display">--</span> | <button onclick="logout()" class="exit-btn">Exit System</button></div>
-            </header>
+    <!-- DASHBOARD CONTENT -->
+    <div class="grid-container">
+        
+        <!-- LEFT COLUMN -->
+        <div class="column">
             
-            <div class="staff-container">
-                <div class="analytics-deck">
-                    <div class="stat-card">
-                        <label>Gross Collected Revenue</label>
-                        <h2 id="hq-revenue">$0.00</h2>
-                    </div>
-                    <div class="stat-card">
-                        <label>Active Occupancy Rate</label>
-                        <h2 id="hq-occupancy">0%</h2>
-                    </div>
-                    <div class="stat-card">
-                        <label>AI Traffic Risk Projection</label>
-                        <h2 id="hq-traffic-prediction" style="color: var(--success);">OPTIMAL FLOW</h2>
-                    </div>
-                    <div class="stat-card">
-                        <label>System Gate Status</label>
-                        <h2 id="hq-gate-status" class="status-green">SECURELY LOCKED</h2>
-                    </div>
+            <!-- SECURITY STATUS & RESET -->
+            <div class="card">
+                <div class="card-title">🛡️ Live Security Status</div>
+                <div class="status-box" id="securityBox">
+                    <div class="status-sub">CURRENT SYSTEM STATE</div>
+                    <div class="status-main" id="securityText">SYSTEM SECURE</div>
                 </div>
+                <button class="btn btn-blue" style="width: 100%; justify-content: center;" onclick="resetAlarm()">
+                    🔕 Silence & Clear Alarm LED
+                </button>
+            </div>
 
-                <div class="staff-double-deck">
-                    <div class="card visual-analytics-card">
-                        <h3>📈 Dynamic Capacity Matrix Load</h3>
-                        <div class="chart-container">
-                            <div class="chart-bar-wrapper">
-                                <label>Occupied Nodes</label>
-                                <div class="progress-track"><div id="bar-occupied" class="progress-fill danger-fill" style="width: 0%"></div></div>
-                            </div>
-                            <div class="chart-bar-wrapper">
-                                <label>Available Channels</label>
-                                <div class="progress-track"><div id="bar-vacant" class="progress-fill success-fill" style="width: 100%"></div></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card alert-ticker-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3>Live Telemetry Array Stream</h3>
-                            <button class="purge-btn" style="margin:0;" onclick="clearTelemetryFeed()">Clear Logs</button>
-                        </div>
-                        <div class="ticker-box" id="system-notification-feed"></div>
-                    </div>
+            <!-- TEMPERATURE MONITOR -->
+            <div class="card">
+                <div class="card-title">🌡️ Ambient Temperature</div>
+                <div class="status-box" style="border-left-color: var(--accent-blue);">
+                    <div class="status-sub">DHT11 SENSOR TELEMETRY</div>
+                    <div class="status-main" style="color: var(--accent-blue);" id="tempDisplay">--.- °C</div>
                 </div>
-
-                <div class="override-panel-grid">
-                    <div class="card">
-                        <h3>IoT Hardware Remote Actuation</h3>
-                        <div class="button-row">
-                            <button class="action-btn trigger-open" onclick="toggleGateOverride(true)">Emergency Gate Override Open</button>
-                            <button class="action-btn trigger-close" onclick="toggleGateOverride(false)">Drop Barrier Boom Arm</button>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3>VIP Access Clearance Priority Management</h3>
-                        <div class="whitelist-input-row">
-                            <input type="text" id="whitelist-input" placeholder="Enter Plate Number (e.g. VIP-777)">
-                            <button class="action-btn" onclick="addPlateToWhitelist()">Authorize VIP Pass</button>
-                        </div>
-                        <div class="vip-list-preview" id="vip-badge-rack"></div>
-                    </div>
-                </div>
-
-                <div class="staff-split-grid">
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h3>IoT Space Node Matrix Layout</h3>
-                            <small style="color: var(--text-muted)">Click node to lock/unlock bay</small>
-                        </div>
-                        <div class="sensor-grid" id="staff-sensor-grid"></div>
-                    </div>
-
-                    <div class="card">
-                        <h3>User Database Record Management Panel</h3>
-                        <div class="search-box">
-                            <input type="text" id="log-search" oninput="filterAuditLogs()" placeholder="🔍 Search profiles by handle name...">
-                        </div>
-                        <div class="table-wrapper">
-                            <table class="premium-table condensed">
-                                <thead>
-                                    <tr>
-                                        <th>Identifier</th>
-                                        <th>Plate Track</th>
-                                        <th>Role Context</th>
-                                        <th style="text-align: right;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="audit-log-rows"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="card-row">
+                    <span>Alert Log Threshold (°C):</span>
+                    <input type="number" class="number-input" id="tempThreshold" value="30.0" step="0.5" onchange="sendThreshold()">
                 </div>
             </div>
-        </div>
-    </template>
 
-    <script src="app.js"></script>
+            <!-- AIR / SMOKE QUALITY -->
+            <div class="card">
+                <div class="card-title">☁️ Air Quality Status</div>
+                <div class="status-box" id="airBox">
+                    <div class="status-sub">AIR SENSOR TELEMETRY</div>
+                    <div class="status-main" id="airText">CLEAN AIR</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="column">
+            
+            <!-- AUTHORIZED ENTRIES TABLE -->
+            <div class="card">
+                <div class="card-title" style="justify-content: space-between;">
+                    <span>📇 Authorized Entries</span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-green" onclick="addMockLog('Gate Scan Passed', 'AUTHORIZED')">✓ Test Pass</button>
+                        <button class="btn btn-sm" style="background:#ef4444; color:white;" onclick="addMockLog('Unknown Card Scanned', 'FAILED')">✕ Test Fail</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TIMESTAMP</th>
+                            <th>IDENTITY / NODE</th>
+                            <th>ACCESS POINT</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accessTable">
+                        <tr>
+                            <td>--:--:--</td>
+                            <td>Awaiting Scan...</td>
+                            <td>Gate_Node_01</td>
+                            <td><span class="badge badge-blue">STANDBY</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SYSTEM LOGS TABLE -->
+            <div class="card">
+                <div class="card-title">📊 System Logs & Telemetry</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TIMESTAMP</th>
+                            <th>DEVICE NODE</th>
+                            <th>EVENT DESCRIPTION</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTable">
+                        <tr>
+                            <td>--:--:--</td>
+                            <td>EcoGate_Node_01</td>
+                            <td>Awaiting Hardware Connection...</td>
+                            <td><span class="badge badge-blue">STANDBY</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // BLE UUIDs
+        const SERVICE_UUID      = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const SENSOR_CHAR_UUID  = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CONTROL_CHAR_UUID = "82245b0a-9d22-421b-85d0-08e64c3986a1";
+
+        let bleDevice = null;
+        let controlChar = null;
+
+        // TOGGLE BLE CONNECTION
+        async function toggleBLE() {
+            if (bleDevice && bleDevice.gatt.connected) {
+                bleDevice.gatt.disconnect();
+                return;
+            }
+
+            try {
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'EcoGate-ESP32' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                bleDevice.addEventListener('gattserverdisconnected', () => {
+                    document.getElementById('connDot').classList.remove('active');
+                    document.getElementById('connText').innerText = "Disconnected";
+                    document.getElementById('connectBtn').innerText = "⚡ Connect EcoGate";
+                });
+
+                const server = await bleDevice.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+
+                // Sensor Characteristics (Notifications)
+                const sensorChar = await service.getCharacteristic(SENSOR_CHAR_UUID);
+                await sensorChar.startNotifications();
+                sensorChar.addEventListener('characteristicvaluechanged', handleIncomingData);
+
+                // Control Characteristic (Writes commands)
+                controlChar = await service.getCharacteristic(CONTROL_CHAR_UUID);
+
+                document.getElementById('connDot').classList.add('active');
+                document.getElementById('connText').innerText = "Connected";
+                document.getElementById('connectBtn').innerText = "Disconnect";
+
+            } catch (err) {
+                console.error("BLE Error:", err);
+            }
+        }
+
+        // HANDLE INCOMING TELEMETRY FROM ESP32
+        function handleIncomingData(event) {
+            const raw = new TextDecoder().decode(event.target.value);
+            // Payload format from ESP32: "TEMP:28.5,ALARM:1,GATE:CLOSED"
+            const data = Object.fromEntries(raw.split(',').map(pair => pair.split(':')));
+
+            if (data.TEMP) {
+                document.getElementById('tempDisplay').innerText = `${parseFloat(data.TEMP).toFixed(1)} °C`;
+            }
+
+            if (data.ALARM === "1") {
+                triggerAlarmUI();
+            }
+
+            if (data.LOG) {
+                addLogEntry("EcoGate_Node_01", data.LOG, "TELEMETRY");
+            }
+        }
+
+        // SEND CLEAR ALARM COMMAND TO ESP32 (Turns off physical LED/Buzzer)
+        async function resetAlarm() {
+            // Reset UI
+            document.getElementById('securityBox').classList.remove('alarm');
+            document.getElementById('securityText').innerText = "SYSTEM SECURE";
+
+            // Send command over BLE to ESP32
+            if (controlChar) {
+                const encoder = new TextEncoder();
+                await controlChar.writeValue(encoder.encode("RESET_ALARM"));
+            }
+            addLogEntry("EcoGate_Node_01", "Alarm silenced via Dashboard", "CLEARED");
+        }
+
+        // SEND TEMPERATURE THRESHOLD TO ESP32
+        async function sendThreshold() {
+            const val = document.getElementById('tempThreshold').value;
+            if (controlChar) {
+                const encoder = new TextEncoder();
+                await controlChar.writeValue(encoder.encode(`SET_THRESH:${val}`));
+            }
+        }
+
+        function triggerAlarmUI() {
+            document.getElementById('securityBox').classList.add('alarm');
+            document.getElementById('securityText').innerText = "🚨 ALARM DETECTED";
+            addLogEntry("EcoGate_Node_01", "Loud sound threshold exceeded!", "ALARM");
+        }
+
+        // TABLE LOGGING FUNCTIONS
+        function addLogEntry(node, desc, status) {
+            const time = new Date().toLocaleTimeString();
+            const table = document.getElementById('logsTable');
+            const row = `<tr>
+                <td>${time}</td>
+                <td>${node}</td>
+                <td>${desc}</td>
+                <td><span class="badge ${status === 'ALARM' ? 'badge-red' : 'badge-blue'}">${status}</span></td>
+            </tr>`;
+            table.innerHTML = row + table.innerHTML;
+        }
+
+        function addMockLog(desc, status) {
+            const time = new Date().toLocaleTimeString();
+            const table = document.getElementById('accessTable');
+            const badgeClass = status === 'AUTHORIZED' ? 'badge-green' : 'badge-red';
+            const row = `<tr>
+                <td>${time}</td>
+                <td>Card User #04</td>
+                <td>Gate_Node_01</td>
+                <td><span class="badge ${badgeClass}">${status}</span></td>
+            </tr>`;
+            table.innerHTML = row + table.innerHTML;
+        }
+    </script>
 </body>
 </html>
