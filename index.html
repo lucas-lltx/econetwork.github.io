@@ -23,7 +23,11 @@
     .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
     .metric-box { background: #2a2a2a; padding: 15px; border-radius: 8px; text-align: center; }
     .metric-val { font-size: 1.8rem; font-weight: bold; color: #00d2d3; margin-top: 5px; }
-    .status-box { padding: 10px; border-radius: 6px; font-weight: bold; background: #e74c3c; text-align: center; font-size: 1.1rem; margin-top: 5px; transition: background-color 0.3s ease; }
+    .status-box { padding: 10px; border-radius: 6px; font-weight: bold; background: #27ae60; text-align: center; font-size: 1.1rem; margin-top: 5px; transition: background-color 0.3s ease; }
+
+    .threshold-container { margin-top: 15px; background: #2a2a2a; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .threshold-container label { font-size: 0.9rem; color: #aaa; }
+    .threshold-input { background: #121212; border: 1px solid #00d2d3; color: #00d2d3; padding: 6px 10px; font-weight: bold; font-size: 1rem; border-radius: 4px; width: 70px; text-align: center; }
 
     .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
     .btn { padding: 12px; font-size: 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: #fff; }
@@ -35,7 +39,7 @@
     .btn-alarm-on { background: #e67e22; }
     .btn-alarm-off { background: #7f8c8d; }
 
-    .log-container { background: #0a0a0a; border: 1px solid #333; border-radius: 6px; height: 260px; overflow-y: auto; padding: 10px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+    .log-container { background: #0a0a0a; border: 1px solid #333; border-radius: 6px; height: 320px; overflow-y: auto; padding: 10px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
     .log-entry { margin-bottom: 6px; padding: 3px 6px; border-radius: 3px; }
     .log-info { color: #3498db; }
     .log-warn { color: #f1c40f; }
@@ -50,7 +54,7 @@
 <body>
 
   <h1>EcoGate Network</h1>
-  <p class="subtitle">Direct Web Serial Control & Monitoring Station</p>
+  <p class="subtitle">Direct Web Serial Control & Safety Station</p>
 
   <div class="connect-bar">
     <button class="btn-connect" onclick="connectSerial()">🔌 Connect to EcoGate (Board 1)</button>
@@ -62,7 +66,7 @@
     <!-- LEFT PANEL: Telemetry & Controls -->
     <div>
       <div class="card" style="margin-bottom: 20px;">
-        <div class="card-title">System Telemetry</div>
+        <div class="card-title">System Telemetry & Thermal Protection</div>
         <div class="metric-grid">
           <div class="metric-box">
             <div>Temperature</div>
@@ -73,9 +77,16 @@
             <div class="metric-val" id="humVal">-- %</div>
           </div>
         </div>
+
+        <!-- Temperature Threshold Limit Input -->
+        <div class="threshold-container">
+          <label for="tempLimit">Max Temp Alarm Limit (°C):</label>
+          <input type="number" id="tempLimit" class="threshold-input" value="35.0" step="0.5" onchange="checkTempThreshold()">
+        </div>
+
         <div style="margin-top: 15px;">
           <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Gate Barrier Status</div>
-          <div class="status-box" id="gateStatus">CLOSED</div>
+          <div class="status-box" id="gateStatus" style="background: #e74c3c;">CLOSED</div>
         </div>
         <div style="margin-top: 10px;">
           <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Sound / Alarm Status</div>
@@ -84,16 +95,16 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Manual Controls</div>
-        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Barrier Overrides:</div>
+        <div class="card-title">Manual Overrides</div>
+        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Barrier Control:</div>
         <div class="btn-grid">
           <button class="btn btn-open" id="btnOpen" disabled onclick="sendSerial('#WEB:OPEN\n')">OVERRIDE OPEN</button>
           <button class="btn btn-close" id="btnClose" disabled onclick="sendSerial('#WEB:CLOSE\n')">OVERRIDE CLOSE</button>
         </div>
-        <div style="font-size: 0.85rem; color: #aaa; margin-top: 15px; margin-bottom: 5px;">Alarm Controls:</div>
+        <div style="font-size: 0.85rem; color: #aaa; margin-top: 15px; margin-bottom: 5px;">Alarm Override:</div>
         <div class="btn-grid">
-          <button class="btn btn-alarm-on" id="btnAlarmOn" disabled onclick="sendSerial('#WEB:ALARM_ON\n')">TRIGGER ALARM</button>
-          <button class="btn btn-alarm-off" id="btnAlarmOff" disabled onclick="sendSerial('#WEB:ALARM_OFF\n')">RESET ALARM</button>
+          <button class="btn btn-alarm-on" id="btnAlarmOn" disabled onclick="triggerContinuousAlarm('Manual Web Override')">TRIGGER ALARM</button>
+          <button class="btn btn-alarm-off" id="btnAlarmOff" disabled onclick="stopContinuousAlarm()">RESET ALARM</button>
         </div>
       </div>
     </div>
@@ -115,39 +126,81 @@
   <script>
     let port;
     let writer;
-    let audioCtx;
+    let audioCtx = null;
+    let sirenInterval = null;
+    let isAlarmActive = false;
+    let currentTemp = null;
 
-    // Web Audio API Synthesizer (PC Alarm Beep)
-    function playAlarmSound() {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Continuous Dual-Tone Siren Synthesizer
+    function startSirenLoop() {
+      if (sirenInterval) return; // Already running
+
+      sirenInterval = setInterval(() => {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(950, now);
+          osc.frequency.exponentialRampToValueAtTime(450, now + 0.35);
+
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } catch (e) {
+          console.error("Audio playback error:", e);
         }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
+      }, 400); // Pulse siren tone every 400ms
+    }
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+    function stopSirenLoop() {
+      if (sirenInterval) {
+        clearInterval(sirenInterval);
+        sirenInterval = null;
+      }
+    }
 
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880Hz pitch (A5)
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3); // Pitch drop sweep
+    function triggerContinuousAlarm(reason = "System Trigger") {
+      if (!isAlarmActive) {
+        isAlarmActive = true;
+        updateAlarmUI('⚠️ ALARM TRIGGERED', '#e74c3c');
+        addLog(`[ALERT] Continuous Alarm Active! (${reason})`, "log-alert");
+        sendSerial('#WEB:ALARM_ON\n');
+        startSirenLoop();
+      }
+    }
 
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-      } catch (e) {
-        console.error("Audio playback error:", e);
+    function stopContinuousAlarm() {
+      if (isAlarmActive) {
+        isAlarmActive = false;
+        stopSirenLoop();
+        updateAlarmUI('NORMAL (QUIET)', '#27ae60');
+        addLog("[System] Alarm silenced and reset.", "log-success");
+        sendSerial('#WEB:ALARM_OFF\n');
       }
     }
 
     async function connectSerial() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
       if (!("serial" in navigator)) {
         alert("Web Serial API is not supported in this browser. Please use Google Chrome or MS Edge.");
         return;
@@ -156,9 +209,6 @@
       try {
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 9600 });
-
-        // Initialize AudioContext on user interaction
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         document.getElementById('connStatus').innerText = "Status: Connected to EcoGate Hardware";
         document.getElementById('connStatus').style.color = "#2ecc71";
@@ -211,12 +261,16 @@
     function parseHardwareLine(data) {
       if (!data) return;
 
-      // Telemetry Data Packets (#DATA:TEMP:28.5:HUM:65)
+      // Telemetry Data Packets (#DATA:TEMP:28.5:HUM:65.0)
       if (data.includes('#DATA:TEMP:')) {
         const parts = data.split(':');
-        document.getElementById('tempVal').innerText = `${parts[2]} °C`;
-        document.getElementById('humVal').innerText = `${parts[4]} %`;
-        addLog(`[Telemetry] Temp: ${parts[2]}°C | Humidity: ${parts[4]}%`, "log-info");
+        currentTemp = parseFloat(parts[2]);
+        const humVal = parts[4];
+
+        document.getElementById('tempVal').innerText = `${currentTemp.toFixed(1)} °C`;
+        document.getElementById('humVal').innerText = `${humVal} %`;
+        
+        checkTempThreshold();
       }
       // Gate Open State
       else if (data.includes('#LED:GREEN')) {
@@ -226,16 +280,16 @@
       // Gate Closed State
       else if (data.includes('#LED:RED')) {
         updateGateUI('CLOSED', '#e74c3c');
-        updateAlarmUI('NORMAL (QUIET)', '#27ae60');
+        if (!isAlarmActive) {
+          updateAlarmUI('NORMAL (QUIET)', '#27ae60');
+        }
         addLog("[Barrier] Gate closed. System secure.", "log-info");
       } 
-      // Sound Warning / Tamper Alarm Triggered
+      // Sound / Tamper Warning Triggered from Hardware
       else if (data.includes('#LED:FLASH_RED')) {
-        updateAlarmUI('⚠️ ALARM TRIGGERED', '#e74c3c');
-        addLog("[ALERT] Loud sound / tamper alarm triggered!", "log-alert");
-        playAlarmSound(); // Trigger PC synth alarm
+        triggerContinuousAlarm("Hardware Sound/Tamper Sensor");
       }
-      // Gate Closing Sequence
+      // Gate Closing Warning Sequence
       else if (data.includes('#LED:WARN')) {
         updateGateUI('CLOSING...', '#f39c12');
         addLog("[Barrier] Vehicle passed. Initiating closing sequence...", "log-warn");
@@ -243,6 +297,15 @@
       // Raw Serial Fallback
       else {
         addLog(`[Hardware RAW] ${data}`, "log-info");
+      }
+    }
+
+    function checkTempThreshold() {
+      if (currentTemp === null) return;
+
+      const limit = parseFloat(document.getElementById('tempLimit').value);
+      if (!isNaN(limit) && currentTemp > limit) {
+        triggerContinuousAlarm(`Temperature Exceeded: ${currentTemp}°C > Limit ${limit}°C`);
       }
     }
 
