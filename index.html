@@ -1,483 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGate.Network</title>
-    <style>
-        :root {
-            --bg-main: #0b0f19;
-            --card-bg: #121826;
-            --card-border: #1e293b;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
-            --accent-orange: #f59e0b;
-            --text-primary: #f8fafc;
-            --text-secondary: #64748b;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoGate Network - Central Command</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
+    h1 { color: #00d2d3; margin: 0 0 5px 0; text-align: center; }
+    p.subtitle { color: #888; font-size: 0.9rem; text-align: center; margin-bottom: 20px; }
+    
+    .connect-bar { text-align: center; margin-bottom: 25px; }
+    .btn-connect { background: #00d2d3; color: #121212; padding: 10px 22px; font-size: 0.95rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+    .btn-connect:hover { opacity: 0.9; transform: scale(1.02); }
+    .status-indicator { font-size: 0.85rem; margin-top: 6px; color: #ff6b6b; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; }
+    @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
 
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            padding: 20px;
-            min-height: 100vh;
-        }
+    .card { background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+    .card-title { font-size: 1.1rem; color: #00d2d3; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 8px; }
 
-        /* HEADER & NAVBAR */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
+    .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .metric-box { background: #2a2a2a; padding: 15px; border-radius: 8px; text-align: center; }
+    .metric-val { font-size: 1.8rem; font-weight: bold; color: #00d2d3; margin-top: 5px; }
+    .status-box { padding: 10px; border-radius: 6px; font-weight: bold; background: #e74c3c; text-align: center; font-size: 1.1rem; margin-top: 5px; transition: background-color 0.3s ease; }
 
-        .logo {
-            font-size: 1.6rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .btn { padding: 12px; font-size: 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: #fff; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { background: #444 !important; cursor: not-allowed; opacity: 0.4; }
+    
+    .btn-open { background: #2ecc71; }
+    .btn-close { background: #e74c3c; }
+    .btn-alarm-on { background: #e67e22; }
+    .btn-alarm-off { background: #7f8c8d; }
 
-        .logo span {
-            color: #84cc16;
-        }
+    .log-container { background: #0a0a0a; border: 1px solid #333; border-radius: 6px; height: 260px; overflow-y: auto; padding: 10px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+    .log-entry { margin-bottom: 6px; padding: 3px 6px; border-radius: 3px; }
+    .log-info { color: #3498db; }
+    .log-warn { color: #f1c40f; }
+    .log-alert { color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+    .log-success { color: #2ecc71; }
 
-        .nav-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .btn {
-            background: #1e293b;
-            color: var(--text-primary);
-            border: 1px solid #334155;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: #334155;
-        }
-
-        .btn-green {
-            background: #bef264;
-            color: #0f172a;
-            border: none;
-        }
-
-        .btn-green:hover {
-            background: #a3e635;
-        }
-
-        .btn-blue {
-            background: #0284c7;
-            color: white;
-            border: none;
-        }
-
-        .conn-status {
-            background: #1e293b;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            color: #94a3b8;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #ef4444;
-        }
-
-        .status-dot.active {
-            background: var(--accent-green);
-        }
-
-        /* DASHBOARD GRID */
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 20px;
-        }
-
-        .column {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* CARDS */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .card-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-box {
-            background: #0f172a;
-            border-left: 4px solid var(--accent-green);
-            border-radius: 8px;
-            padding: 24px;
-            text-align: center;
-            margin-bottom: 12px;
-        }
-
-        .status-box.alarm {
-            border-left-color: var(--accent-red);
-        }
-
-        .status-sub {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .status-main {
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-top: 6px;
-            color: var(--accent-green);
-        }
-
-        .status-box.alarm .status-main {
-            color: var(--accent-red);
-        }
-
-        .card-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .number-input {
-            background: #0f172a;
-            border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            padding: 6px 12px;
-            border-radius: 6px;
-            width: 80px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        /* TABLES */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-
-        th {
-            text-align: left;
-            color: var(--text-secondary);
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        td {
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: 700;
-        }
-
-        .badge-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
-        .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-        .badge-blue { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-        .badge-orange { background: rgba(245, 158, 11, 0.2); color: #fde047; }
-
-        .btn-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-sm {
-            padding: 4px 10px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-        }
-    </style>
+    .log-actions { display: flex; justify-content: space-between; margin-top: 10px; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; background: #333; color: #ccc; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-sm:hover { background: #444; color: #fff; }
+  </style>
 </head>
 <body>
 
-    <!-- NAVBAR -->
-    <header>
-        <div class="logo">EcoGate<span>.Network</span></div>
-        <div class="nav-actions">
-            <button class="btn btn-green" id="connectBtn" onclick="toggleBLE()">
-                ⚡ Connect EcoGate
-            </button>
-            <div class="conn-status">
-                <div class="status-dot" id="connDot"></div>
-                <span id="connText">Disconnected</span>
-            </div>
+  <h1>EcoGate Network</h1>
+  <p class="subtitle">Direct Web Serial Control & Monitoring Station</p>
+
+  <div class="connect-bar">
+    <button class="btn-connect" onclick="connectSerial()">🔌 Connect to EcoGate (Board 1)</button>
+    <div class="status-indicator" id="connStatus">Status: Disconnected</div>
+  </div>
+
+  <div class="main-grid">
+    
+    <!-- LEFT PANEL: Telemetry & Controls -->
+    <div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-title">System Telemetry</div>
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div>Temperature</div>
+            <div class="metric-val" id="tempVal">-- °C</div>
+          </div>
+          <div class="metric-box">
+            <div>Humidity</div>
+            <div class="metric-val" id="humVal">-- %</div>
+          </div>
         </div>
-    </header>
-
-    <!-- DASHBOARD CONTENT -->
-    <div class="grid-container">
-        
-        <!-- LEFT COLUMN -->
-        <div class="column">
-            
-            <!-- SECURITY STATUS & RESET -->
-            <div class="card">
-                <div class="card-title">🛡️ Live Security Status</div>
-                <div class="status-box" id="securityBox">
-                    <div class="status-sub">CURRENT SYSTEM STATE</div>
-                    <div class="status-main" id="securityText">SYSTEM SECURE</div>
-                </div>
-                <button class="btn btn-blue" style="width: 100%; justify-content: center;" onclick="resetAlarm()">
-                    🔕 Silence & Clear Alarm LED
-                </button>
-            </div>
-
-            <!-- TEMPERATURE MONITOR -->
-            <div class="card">
-                <div class="card-title">🌡️ Ambient Temperature</div>
-                <div class="status-box" style="border-left-color: var(--accent-blue);">
-                    <div class="status-sub">DHT11 SENSOR TELEMETRY</div>
-                    <div class="status-main" style="color: var(--accent-blue);" id="tempDisplay">--.- °C</div>
-                </div>
-                <div class="card-row">
-                    <span>Alert Log Threshold (°C):</span>
-                    <input type="number" class="number-input" id="tempThreshold" value="30.0" step="0.5" onchange="sendThreshold()">
-                </div>
-            </div>
-
-            <!-- AIR / SMOKE QUALITY -->
-            <div class="card">
-                <div class="card-title">☁️ Air Quality Status</div>
-                <div class="status-box" id="airBox">
-                    <div class="status-sub">AIR SENSOR TELEMETRY</div>
-                    <div class="status-main" id="airText">CLEAN AIR</div>
-                </div>
-            </div>
-
+        <div style="margin-top: 15px;">
+          <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Gate Barrier Status</div>
+          <div class="status-box" id="gateStatus">CLOSED</div>
         </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="column">
-            
-            <!-- AUTHORIZED ENTRIES TABLE -->
-            <div class="card">
-                <div class="card-title" style="justify-content: space-between;">
-                    <span>📇 Authorized Entries</span>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-green" onclick="addMockLog('Gate Scan Passed', 'AUTHORIZED')">✓ Test Pass</button>
-                        <button class="btn btn-sm" style="background:#ef4444; color:white;" onclick="addMockLog('Unknown Card Scanned', 'FAILED')">✕ Test Fail</button>
-                    </div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>TIMESTAMP</th>
-                            <th>IDENTITY / NODE</th>
-                            <th>ACCESS POINT</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="accessTable">
-                        <tr>
-                            <td>--:--:--</td>
-                            <td>Awaiting Scan...</td>
-                            <td>Gate_Node_01</td>
-                            <td><span class="badge badge-blue">STANDBY</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- SYSTEM LOGS TABLE -->
-            <div class="card">
-                <div class="card-title">📊 System Logs & Telemetry</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>TIMESTAMP</th>
-                            <th>DEVICE NODE</th>
-                            <th>EVENT DESCRIPTION</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTable">
-                        <tr>
-                            <td>--:--:--</td>
-                            <td>EcoGate_Node_01</td>
-                            <td>Awaiting Hardware Connection...</td>
-                            <td><span class="badge badge-blue">STANDBY</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
+        <div style="margin-top: 10px;">
+          <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Sound / Alarm Status</div>
+          <div class="status-box" id="alarmStatus" style="background: #27ae60;">NORMAL (QUIET)</div>
         </div>
+      </div>
 
+      <div class="card">
+        <div class="card-title">Manual Controls</div>
+        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Barrier Overrides:</div>
+        <div class="btn-grid">
+          <button class="btn btn-open" id="btnOpen" disabled onclick="sendSerial('#WEB:OPEN\n')">OVERRIDE OPEN</button>
+          <button class="btn btn-close" id="btnClose" disabled onclick="sendSerial('#WEB:CLOSE\n')">OVERRIDE CLOSE</button>
+        </div>
+        <div style="font-size: 0.85rem; color: #aaa; margin-top: 15px; margin-bottom: 5px;">Alarm Controls:</div>
+        <div class="btn-grid">
+          <button class="btn btn-alarm-on" id="btnAlarmOn" disabled onclick="sendSerial('#WEB:ALARM_ON\n')">TRIGGER ALARM</button>
+          <button class="btn btn-alarm-off" id="btnAlarmOff" disabled onclick="sendSerial('#WEB:ALARM_OFF\n')">RESET ALARM</button>
+        </div>
+      </div>
     </div>
 
-    <script>
-        // BLE UUIDs
-        const SERVICE_UUID      = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-        const SENSOR_CHAR_UUID  = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-        const CONTROL_CHAR_UUID = "82245b0a-9d22-421b-85d0-08e64c3986a1";
+    <!-- RIGHT PANEL: Operational Event Logs -->
+    <div class="card">
+      <div class="card-title">Real-Time Event Log</div>
+      <div class="log-container" id="logBox">
+        <div class="log-entry log-info">[System] Awaiting hardware serial connection...</div>
+      </div>
+      <div class="log-actions">
+        <button class="btn-sm" onclick="clearLogs()">Clear Console</button>
+        <button class="btn-sm" onclick="downloadLogs()">Export Log File</button>
+      </div>
+    </div>
 
-        let bleDevice = null;
-        let controlChar = null;
+  </div>
 
-        // TOGGLE BLE CONNECTION
-        async function toggleBLE() {
-            if (bleDevice && bleDevice.gatt.connected) {
-                bleDevice.gatt.disconnect();
-                return;
-            }
+  <script>
+    let port;
+    let writer;
+    let audioCtx;
 
-            try {
-                bleDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'EcoGate-ESP32' }],
-                    optionalServices: [SERVICE_UUID]
-                });
-
-                bleDevice.addEventListener('gattserverdisconnected', () => {
-                    document.getElementById('connDot').classList.remove('active');
-                    document.getElementById('connText').innerText = "Disconnected";
-                    document.getElementById('connectBtn').innerText = "⚡ Connect EcoGate";
-                });
-
-                const server = await bleDevice.gatt.connect();
-                const service = await server.getPrimaryService(SERVICE_UUID);
-
-                // Sensor Characteristics (Notifications)
-                const sensorChar = await service.getCharacteristic(SENSOR_CHAR_UUID);
-                await sensorChar.startNotifications();
-                sensorChar.addEventListener('characteristicvaluechanged', handleIncomingData);
-
-                // Control Characteristic (Writes commands)
-                controlChar = await service.getCharacteristic(CONTROL_CHAR_UUID);
-
-                document.getElementById('connDot').classList.add('active');
-                document.getElementById('connText').innerText = "Connected";
-                document.getElementById('connectBtn').innerText = "Disconnect";
-
-            } catch (err) {
-                console.error("BLE Error:", err);
-            }
+    // Web Audio API Synthesizer (PC Alarm Beep)
+    function playAlarmSound() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
         }
 
-        // HANDLE INCOMING TELEMETRY FROM ESP32
-        function handleIncomingData(event) {
-            const raw = new TextDecoder().decode(event.target.value);
-            // Payload format from ESP32: "TEMP:28.5,ALARM:1,GATE:CLOSED"
-            const data = Object.fromEntries(raw.split(',').map(pair => pair.split(':')));
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-            if (data.TEMP) {
-                document.getElementById('tempDisplay').innerText = `${parseFloat(data.TEMP).toFixed(1)} °C`;
-            }
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880Hz pitch (A5)
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3); // Pitch drop sweep
 
-            if (data.ALARM === "1") {
-                triggerAlarmUI();
-            }
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
 
-            if (data.LOG) {
-                addLogEntry("EcoGate_Node_01", data.LOG, "TELEMETRY");
-            }
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {
+        console.error("Audio playback error:", e);
+      }
+    }
+
+    async function connectSerial() {
+      if (!("serial" in navigator)) {
+        alert("Web Serial API is not supported in this browser. Please use Google Chrome or MS Edge.");
+        return;
+      }
+
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+
+        // Initialize AudioContext on user interaction
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        document.getElementById('connStatus').innerText = "Status: Connected to EcoGate Hardware";
+        document.getElementById('connStatus').style.color = "#2ecc71";
+        
+        ['btnOpen', 'btnClose', 'btnAlarmOn', 'btnAlarmOff'].forEach(id => {
+          document.getElementById(id).disabled = false;
+        });
+
+        addLog("[System] Serial connection established @ 9600 baud.", "log-success");
+
+        const textEncoder = new TextEncoderStream();
+        textEncoder.readable.pipeTo(port.writable);
+        writer = textEncoder.writable.getWriter();
+
+        readSerialStream();
+
+      } catch (err) {
+        console.error("Serial Connection Failed:", err);
+        document.getElementById('connStatus').innerText = `Status: Connection Failed (${err.message})`;
+        addLog(`[Error] ${err.message}`, "log-alert");
+      }
+    }
+
+    async function readSerialStream() {
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable);
+      const reader = textDecoder.readable.getReader();
+      let buffer = "";
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          buffer += value;
+          let lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (let line of lines) {
+            parseHardwareLine(line.trim());
+          }
         }
+      } catch (err) {
+        addLog(`[Read Error] ${err.message}`, "log-alert");
+      } finally {
+        reader.releaseLock();
+      }
+    }
 
-        // SEND CLEAR ALARM COMMAND TO ESP32 (Turns off physical LED/Buzzer)
-        async function resetAlarm() {
-            // Reset UI
-            document.getElementById('securityBox').classList.remove('alarm');
-            document.getElementById('securityText').innerText = "SYSTEM SECURE";
+    function parseHardwareLine(data) {
+      if (!data) return;
 
-            // Send command over BLE to ESP32
-            if (controlChar) {
-                const encoder = new TextEncoder();
-                await controlChar.writeValue(encoder.encode("RESET_ALARM"));
-            }
-            addLogEntry("EcoGate_Node_01", "Alarm silenced via Dashboard", "CLEARED");
-        }
+      // Telemetry Data Packets (#DATA:TEMP:28.5:HUM:65)
+      if (data.includes('#DATA:TEMP:')) {
+        const parts = data.split(':');
+        document.getElementById('tempVal').innerText = `${parts[2]} °C`;
+        document.getElementById('humVal').innerText = `${parts[4]} %`;
+        addLog(`[Telemetry] Temp: ${parts[2]}°C | Humidity: ${parts[4]}%`, "log-info");
+      }
+      // Gate Open State
+      else if (data.includes('#LED:GREEN')) {
+        updateGateUI('OPEN', '#2ecc71');
+        addLog("[Barrier] Gate opened successfully.", "log-success");
+      } 
+      // Gate Closed State
+      else if (data.includes('#LED:RED')) {
+        updateGateUI('CLOSED', '#e74c3c');
+        updateAlarmUI('NORMAL (QUIET)', '#27ae60');
+        addLog("[Barrier] Gate closed. System secure.", "log-info");
+      } 
+      // Sound Warning / Tamper Alarm Triggered
+      else if (data.includes('#LED:FLASH_RED')) {
+        updateAlarmUI('⚠️ ALARM TRIGGERED', '#e74c3c');
+        addLog("[ALERT] Loud sound / tamper alarm triggered!", "log-alert");
+        playAlarmSound(); // Trigger PC synth alarm
+      }
+      // Gate Closing Sequence
+      else if (data.includes('#LED:WARN')) {
+        updateGateUI('CLOSING...', '#f39c12');
+        addLog("[Barrier] Vehicle passed. Initiating closing sequence...", "log-warn");
+      }
+      // Raw Serial Fallback
+      else {
+        addLog(`[Hardware RAW] ${data}`, "log-info");
+      }
+    }
 
-        // SEND TEMPERATURE THRESHOLD TO ESP32
-        async function sendThreshold() {
-            const val = document.getElementById('tempThreshold').value;
-            if (controlChar) {
-                const encoder = new TextEncoder();
-                await controlChar.writeValue(encoder.encode(`SET_THRESH:${val}`));
-            }
-        }
+    function updateGateUI(statusText, colorHex) {
+      const el = document.getElementById('gateStatus');
+      el.innerText = statusText;
+      el.style.backgroundColor = colorHex;
+    }
 
-        function triggerAlarmUI() {
-            document.getElementById('securityBox').classList.add('alarm');
-            document.getElementById('securityText').innerText = "🚨 ALARM DETECTED";
-            addLogEntry("EcoGate_Node_01", "Loud sound threshold exceeded!", "ALARM");
-        }
+    function updateAlarmUI(statusText, colorHex) {
+      const el = document.getElementById('alarmStatus');
+      el.innerText = statusText;
+      el.style.backgroundColor = colorHex;
+    }
 
-        // TABLE LOGGING FUNCTIONS
-        function addLogEntry(node, desc, status) {
-            const time = new Date().toLocaleTimeString();
-            const table = document.getElementById('logsTable');
-            const row = `<tr>
-                <td>${time}</td>
-                <td>${node}</td>
-                <td>${desc}</td>
-                <td><span class="badge ${status === 'ALARM' ? 'badge-red' : 'badge-blue'}">${status}</span></td>
-            </tr>`;
-            table.innerHTML = row + table.innerHTML;
-        }
+    async function sendSerial(command) {
+      if (writer) {
+        await writer.write(command);
+        addLog(`[Command Sent] ${command.trim()}`, "log-warn");
+      }
+    }
 
-        function addMockLog(desc, status) {
-            const time = new Date().toLocaleTimeString();
-            const table = document.getElementById('accessTable');
-            const badgeClass = status === 'AUTHORIZED' ? 'badge-green' : 'badge-red';
-            const row = `<tr>
-                <td>${time}</td>
-                <td>Card User #04</td>
-                <td>Gate_Node_01</td>
-                <td><span class="badge ${badgeClass}">${status}</span></td>
-            </tr>`;
-            table.innerHTML = row + table.innerHTML;
-        }
-    </script>
+    function addLog(message, cssClass = "log-info") {
+      const logBox = document.getElementById('logBox');
+      const timeString = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${cssClass}`;
+      entry.innerText = `[${timeString}] ${message}`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('logBox').innerHTML = '<div class="log-entry log-info">[System] Logs cleared.</div>';
+    }
+
+    function downloadLogs() {
+      const logText = Array.from(document.querySelectorAll('.log-entry')).map(e => e.innerText).join('\n');
+      const blob = new Blob([logText], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ecogate-log-${new Date().toISOString().slice(0,10)}.txt`;
+      a.click();
+    }
+  </script>
 </body>
 </html>
