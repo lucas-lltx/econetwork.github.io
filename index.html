@@ -24,18 +24,15 @@
     .panel { background: #1c1e24; border: 1px solid #2e323b; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
     .panel-title { color: #2dd4bf; font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid #2e323b; padding-bottom: 10px; }
 
-    /* Telemetry Cards */
     .telemetry-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 15px; }
     .card { background: #252830; padding: 12px 10px; border-radius: 6px; text-align: center; border: 1px solid #333742; }
     .card h4 { color: #94a3b8; font-size: 0.8rem; font-weight: 500; margin-bottom: 6px; }
     .card .val { font-size: 1.5rem; font-weight: 700; color: #00e5ff; }
 
-    /* Limit Input Box */
     .limit-box { background: #252830; border: 1px solid #333742; border-radius: 6px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     .limit-box label { font-size: 0.88rem; color: #94a3b8; }
     .limit-input { background: #121316; border: 1px solid #00e5ff; color: #00e5ff; width: 90px; padding: 6px 10px; border-radius: 4px; font-size: 1.1rem; font-weight: 700; text-align: center; outline: none; }
 
-    /* Status Indicators */
     .status-block { width: 100%; padding: 12px; border-radius: 6px; font-weight: 700; text-align: center; text-transform: uppercase; font-size: 1rem; margin-bottom: 10px; letter-spacing: 0.5px; }
     .status-block.closed { background: #ef4444; color: #fff; }
     .status-block.open { background: #22c55e; color: #fff; }
@@ -45,7 +42,6 @@
 
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-    /* Override Control Buttons */
     .control-sublabel { font-size: 0.8rem; color: #94a3b8; margin: 12px 0 6px 0; }
     .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .btn { padding: 12px; font-weight: 700; font-size: 0.88rem; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s; }
@@ -55,7 +51,6 @@
     .btn-trigger { background: #f97316; color: #fff; }
     .btn-reset { background: #64748b; color: #fff; }
 
-    /* Event Log Panel */
     .log-box { background: #121316; border: 1px solid #2e323b; border-radius: 6px; height: 350px; padding: 12px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
     .log-line { line-height: 1.4; }
     .log-line.system { color: #38bdf8; }
@@ -80,8 +75,6 @@
   </div>
 
   <div class="layout-grid">
-    
-    <!-- LEFT COLUMN: Telemetry & Overrides -->
     <div style="display: flex; flex-direction: column; gap: 20px;">
       
       <div class="panel">
@@ -116,7 +109,6 @@
 
       <div class="panel">
         <h3 class="panel-title">Manual Overrides</h3>
-        
         <div class="control-sublabel">Barrier Control:</div>
         <div class="btn-group">
           <button class="btn btn-open" onclick="sendCommand('#WEB:OPEN')">Override Open</button>
@@ -132,255 +124,303 @@
 
     </div>
 
-    <!-- RIGHT COLUMN: Real-Time Event Log -->
     <div class="panel" style="display: flex; flex-direction: column;">
       <h3 class="panel-title">Real-Time Event Log</h3>
-      
       <div class="log-box" id="logBox">
         <div class="log-line system">[System] System initialized. Ready to connect.</div>
       </div>
-
       <div class="log-actions">
         <button class="btn-sm" onclick="clearLogs()">Clear Console</button>
         <button class="btn-sm" onclick="exportLogFile()">Export Log File</button>
       </div>
     </div>
-
   </div>
 
- <script>
-  let port = null;
-  let writer = null;
-  let reader = null;
-  let maxTempThreshold = 35.0;
-  let logHistory = [];
+  <script>
+    let port = null, writer = null, reader = null;
+    let maxTempThreshold = 35.0;
+    let logHistory = [];
 
-  async function toggleConnect() {
-    if (port) {
-      await disconnectSerial();
-    } else {
-      await connectSerial();
-    }
-  }
+    // Web Audio API Sound Generator
+    let audioCtx = null;
+    let alarmInterval = null;
+    let isAudioAlarmPlaying = false;
 
-  async function connectSerial() {
-    if (!("serial" in navigator)) {
-      alert("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
-      return;
-    }
-
-    try {
-      // 1. Prompt user to select COM Port
-      port = await navigator.serial.requestPort();
-      
-      // 2. Open serial stream at 9600 Baud
-      await port.open({ baudRate: 9600 });
-
-      // 3. Set up Text Encoder Stream
-      const textEncoder = new TextEncoderStream();
-      const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
-      writer = textEncoder.writable.getWriter();
-
-      // 4. Update UI State
-      const connBtn = document.getElementById("connectBtn");
-      const statusMsg = document.getElementById("connStatus");
-
-      statusMsg.className = "status-msg";
-      statusMsg.innerText = "Connected to EcoGate Master (Board 1)";
-      connBtn.innerHTML = "<span>🔌</span> Disconnect";
-
-      logEvent("Connection established successfully.", "success");
-      updateTempLimit();
-
-      // 5. Start listening for incoming telemetry
-      readSerial();
-    } catch (err) {
-      // CLEANUP ON FAILURE: Reset variables so re-connecting is allowed
-      await cleanupSerialResources();
-      
-      const statusMsg = document.getElementById("connStatus");
-      const connBtn = document.getElementById("connectBtn");
-
-      statusMsg.className = "status-msg error";
-      statusMsg.innerText = "Connection Failed (" + err.message + ")";
-      connBtn.innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
-      
-      logEvent("Failed to connect: " + err.message, "danger");
-    }
-  }
-
-  async function disconnectSerial() {
-    await cleanupSerialResources();
-
-    const statusMsg = document.getElementById("connStatus");
-    const connBtn = document.getElementById("connectBtn");
-
-    statusMsg.className = "status-msg error";
-    statusMsg.innerText = "Disconnected";
-    connBtn.innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
-    logEvent("Serial port disconnected.", "warning");
-  }
-
-  async function cleanupSerialResources() {
-    try {
-      if (reader) {
-        await reader.cancel();
-        reader.releaseLock();
-        reader = null;
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      if (writer) {
-        await writer.close();
-        writer.releaseLock();
-        writer = null;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
+    }
+
+    function playBeep(freq, duration, type = "sine") {
+      initAudioContext();
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (duration / 1000));
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + (duration / 1000));
+    }
+
+    function startWebAlarmSound() {
+      initAudioContext();
+      if (isAudioAlarmPlaying) return;
+
+      isAudioAlarmPlaying = true;
+      let toggleTone = false;
+
+      alarmInterval = setInterval(() => {
+        if (!isAudioAlarmPlaying) return;
+
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+
+        osc.type = "sawtooth";
+        osc.frequency.value = toggleTone ? 850 : 650;
+        toggleTone = !toggleTone;
+
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.18);
+      }, 200);
+    }
+
+    function stopWebAlarmSound() {
+      isAudioAlarmPlaying = false;
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+    }
+
+    async function toggleConnect() {
+      initAudioContext();
       if (port) {
-        await port.close();
-        port = null;
+        await disconnectSerial();
+      } else {
+        await connectSerial();
       }
-    } catch (e) {
-      console.warn("Resource cleanup notice:", e);
-      port = null;
-      writer = null;
-      reader = null;
     }
-  }
 
-  async function sendCommand(cmd) {
-    if (writer) {
-      await writer.write(cmd + "\n");
-      if (cmd === "#WEB:OPEN") {
-        updateBarrierUI("OPEN", "open");
-        logEvent("Manual command: Barrier opened.", "system");
-      } else if (cmd === "#WEB:CLOSE") {
-        updateBarrierUI("CLOSING...", "warn");
-        logEvent("Manual command: Barrier closing sequence.", "system");
-      } else if (cmd === "#WEB:ALARM_ON") {
-        updateAlarmUI("ALARM TRIGGERED", "alarm");
-        logEvent("Manual alarm activated!", "danger");
-      } else if (cmd === "#WEB:ALARM_OFF") {
-        updateAlarmUI("NORMAL (QUIET)", "normal");
-        logEvent("Alarm reset by operator.", "success");
+    async function connectSerial() {
+      if (!("serial" in navigator)) {
+        alert("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
+        return;
       }
-    } else {
-      alert("Connect to EcoGate first.");
-    }
-  }
 
-  function updateTempLimit() {
-    const val = parseFloat(document.getElementById("tempLimit").value);
-    if (!isNaN(val)) {
-      maxTempThreshold = val;
-      logEvent("Max Temp Alarm Limit updated to " + val.toFixed(1) + " °C", "system");
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+
+        const textEncoder = new TextEncoderStream();
+        textEncoder.readable.pipeTo(port.writable);
+        writer = textEncoder.writable.getWriter();
+
+        document.getElementById("connStatus").className = "status-msg";
+        document.getElementById("connStatus").innerText = "Connected to EcoGate Master (Board 1)";
+        document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Disconnect";
+
+        logEvent("Connection established successfully.", "success");
+        updateTempLimit();
+        readSerial();
+      } catch (err) {
+        await cleanupSerialResources();
+        document.getElementById("connStatus").className = "status-msg error";
+        document.getElementById("connStatus").innerText = "Connection Failed (" + err.message + ")";
+        document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
+        logEvent("Failed to connect: " + err.message, "danger");
+      }
+    }
+
+    async function disconnectSerial() {
+      stopWebAlarmSound();
+      await cleanupSerialResources();
+
+      document.getElementById("connStatus").className = "status-msg error";
+      document.getElementById("connStatus").innerText = "Disconnected";
+      document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
+      logEvent("Serial port disconnected.", "warning");
+    }
+
+    async function cleanupSerialResources() {
+      try {
+        if (reader) { await reader.cancel(); reader.releaseLock(); reader = null; }
+        if (writer) { await writer.close(); writer.releaseLock(); writer = null; }
+        if (port) { await port.close(); port = null; }
+      } catch (e) {
+        port = null; writer = null; reader = null;
+      }
+    }
+
+    async function sendCommand(cmd) {
+      initAudioContext();
       if (writer) {
-        writer.write("#SET:MAX_TEMP:" + val.toFixed(1) + "\n");
+        await writer.write(cmd + "\n");
+        if (cmd === "#WEB:OPEN") {
+          updateBarrierUI("OPEN", "open");
+          playBeep(1000, 150);
+          logEvent("Manual command: Barrier opened.", "system");
+        } else if (cmd === "#WEB:CLOSE") {
+          updateBarrierUI("CLOSING...", "warn");
+          playBeep(400, 200);
+          logEvent("Manual command: Barrier closing sequence.", "system");
+        } else if (cmd === "#WEB:ALARM_ON") {
+          updateAlarmUI("ALARM TRIGGERED", "alarm");
+          startWebAlarmSound();
+          logEvent("Manual alarm activated!", "danger");
+        } else if (cmd === "#WEB:ALARM_OFF") {
+          updateAlarmUI("NORMAL (QUIET)", "normal");
+          stopWebAlarmSound();
+          logEvent("Alarm reset by operator.", "success");
+        }
+      } else {
+        alert("Connect to EcoGate first.");
       }
     }
-  }
 
-  async function readSerial() {
-    const textDecoder = new TextDecoderStream();
-    const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-    reader = textDecoder.readable.getReader();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += value;
-        let lines = buffer.split("\n");
-        buffer = lines.pop();
-
-        for (let line of lines) {
-          parseTelemetry(line.trim());
+    function updateTempLimit() {
+      const val = parseFloat(document.getElementById("tempLimit").value);
+      if (!isNaN(val)) {
+        maxTempThreshold = val;
+        logEvent("Max Temp Alarm Limit updated to " + val.toFixed(1) + " °C", "system");
+        if (writer) {
+          writer.write("#SET:MAX_TEMP:" + val.toFixed(1) + "\n");
         }
       }
-    } catch (err) {
-      console.error("Read stream interrupted:", err);
-    } finally {
-      reader.releaseLock();
     }
-  }
 
-  function parseTelemetry(line) {
-    if (line.startsWith("#DATA:TEMP:")) {
-      let parts = line.split(":");
-      let tempVal = parseFloat(parts[2]);
-      let humVal = parts[4];
+    async function readSerial() {
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
+      let buffer = "";
 
-      document.getElementById("valTemp").innerText = tempVal.toFixed(1) + " °C";
-      document.getElementById("valHum").innerText = humVal + " %";
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+          let lines = buffer.split("\n");
+          buffer = lines.pop();
 
-      if (tempVal >= maxTempThreshold) {
-        updateAlarmUI("THERMAL ALARM (" + tempVal.toFixed(1) + "°C)", "alarm");
-        logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
+          for (let line of lines) {
+            parseTelemetry(line.trim());
+          }
+        }
+      } catch (err) {
+        console.error("Read stream error:", err);
+      } finally {
+        if (reader) reader.releaseLock();
       }
-    } 
-    else if (line.startsWith("#DATA:DIST:")) {
-      let dist = parseInt(line.split(":")[2]);
-      document.getElementById("valDist").innerText = (dist >= 999 ? ">200" : dist) + " cm";
     }
-    else if (line === "#STATE:BLOCKED") {
-      logEvent("Obstacle detected near gate (<10 cm). Auto-close paused.", "warning");
+
+    function parseTelemetry(line) {
+      if (line.startsWith("#DATA:TEMP:")) {
+        let parts = line.split(":");
+        let tempVal = parseFloat(parts[2]);
+        let humVal = parts[4];
+
+        document.getElementById("valTemp").innerText = tempVal.toFixed(1) + " °C";
+        document.getElementById("valHum").innerText = humVal + " %";
+
+        if (tempVal >= maxTempThreshold) {
+          updateAlarmUI("THERMAL ALARM (" + tempVal.toFixed(1) + "°C)", "alarm");
+          startWebAlarmSound();
+          logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
+        }
+      } 
+      else if (line.startsWith("#DATA:DIST:")) {
+        let dist = parseInt(line.split(":")[2]);
+        document.getElementById("valDist").innerText = (dist >= 999 ? ">200" : dist) + " cm";
+      }
+      else if (line === "#RFID:ACCESS_GRANTED") {
+        playBeep(1200, 150);
+        logEvent("RFID: Authorized Card Scanned. Gate opening...", "success");
+      }
+      else if (line === "#RFID:ACCESS_DENIED") {
+        playBeep(300, 200, "sawtooth");
+        setTimeout(() => playBeep(300, 200, "sawtooth"), 250);
+        logEvent("RFID: Unauthorized Card Scanned!", "danger");
+      }
+      else if (line === "#STATE:BLOCKED") {
+        logEvent("Obstacle detected near gate (<10 cm). Auto-close paused.", "warning");
+      }
+      else if (line === "#STATE:CLEAR") {
+        logEvent("Obstacle cleared.", "system");
+      }
+      else if (line === "#LED:ON" || line === "#LED:GREEN") {
+        updateBarrierUI("OPEN", "open");
+      } 
+      else if (line === "#LED:OFF" || line === "#LED:RED") {
+        updateBarrierUI("CLOSED", "closed");
+        updateAlarmUI("NORMAL (QUIET)", "normal");
+        stopWebAlarmSound();
+      } 
+      else if (line === "#LED:WARN") {
+        updateBarrierUI("CLOSING...", "warn");
+      } 
+      else if (line === "#LED:FLASH" || line === "#LED:FLASH_RED") {
+        updateAlarmUI("ALARM TRIGGERED", "alarm");
+        startWebAlarmSound();
+      }
     }
-    else if (line === "#STATE:CLEAR") {
-      logEvent("Obstacle cleared.", "system");
+
+    function updateBarrierUI(label, stateClass) {
+      const badge = document.getElementById("gateBarrierStatus");
+      badge.innerText = label;
+      badge.className = "status-block " + stateClass;
     }
-    else if (line === "#LED:ON" || line === "#LED:GREEN") {
-      updateBarrierUI("OPEN", "open");
-    } 
-    else if (line === "#LED:OFF" || line === "#LED:RED") {
-      updateBarrierUI("CLOSED", "closed");
-      updateAlarmUI("NORMAL (QUIET)", "normal");
-    } 
-    else if (line === "#LED:WARN") {
-      updateBarrierUI("CLOSING...", "warn");
-    } 
-    else if (line === "#LED:FLASH" || line === "#LED:FLASH_RED") {
-      updateAlarmUI("ALARM TRIGGERED", "alarm");
+
+    function updateAlarmUI(label, stateClass) {
+      const badge = document.getElementById("soundAlarmStatus");
+      badge.innerText = label;
+      badge.className = "status-block " + stateClass;
     }
-  }
 
-  function updateBarrierUI(label, stateClass) {
-    const badge = document.getElementById("gateBarrierStatus");
-    badge.innerText = label;
-    badge.className = "status-block " + stateClass;
-  }
+    function logEvent(msg, type = "system") {
+      const box = document.getElementById("logBox");
+      const timeStr = new Date().toLocaleTimeString();
+      const lineText = `[${timeStr}] ${msg}`;
 
-  function updateAlarmUI(label, stateClass) {
-    const badge = document.getElementById("soundAlarmStatus");
-    badge.innerText = label;
-    badge.className = "status-block " + stateClass;
-  }
+      logHistory.push(lineText);
 
-  function logEvent(msg, type = "system") {
-    const box = document.getElementById("logBox");
-    const timeStr = new Date().toLocaleTimeString();
-    const lineText = `[${timeStr}] ${msg}`;
+      const div = document.createElement("div");
+      div.className = `log-line ${type}`;
+      div.innerText = lineText;
 
-    logHistory.push(lineText);
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
 
-    const div = document.createElement("div");
-    div.className = `log-line ${type}`;
-    div.innerText = lineText;
+    function clearLogs() {
+      document.getElementById("logBox").innerHTML = "";
+      logHistory = [];
+      logEvent("Logs cleared.", "system");
+    }
 
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  function clearLogs() {
-    document.getElementById("logBox").innerHTML = "";
-    logHistory = [];
-    logEvent("Logs cleared.", "system");
-  }
-
-  function exportLogFile() {
-    const blob = new Blob([logHistory.join("\n")], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "EcoGate_Event_Log.txt";
-    a.click();
-  }
-</script>
+    function exportLogFile() {
+      const blob = new Blob([logHistory.join("\n")], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "EcoGate_Event_Log.txt";
+      a.click();
+    }
+  </script>
 </body>
 </html>
