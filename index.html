@@ -25,10 +25,10 @@
     .panel-title { color: #2dd4bf; font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid #2e323b; padding-bottom: 10px; }
 
     /* Telemetry Cards */
-    .telemetry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-    .card { background: #252830; padding: 15px; border-radius: 6px; text-align: center; border: 1px solid #333742; }
-    .card h4 { color: #94a3b8; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; }
-    .card .val { font-size: 1.8rem; font-weight: 700; color: #00e5ff; }
+    .telemetry-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 15px; }
+    .card { background: #252830; padding: 12px 10px; border-radius: 6px; text-align: center; border: 1px solid #333742; }
+    .card h4 { color: #94a3b8; font-size: 0.8rem; font-weight: 500; margin-bottom: 6px; }
+    .card .val { font-size: 1.5rem; font-weight: 700; color: #00e5ff; }
 
     /* Limit Input Box */
     .limit-box { background: #252830; border: 1px solid #333742; border-radius: 6px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -95,6 +95,10 @@
           <div class="card">
             <h4>Humidity</h4>
             <div class="val" id="valHum">-- %</div>
+          </div>
+          <div class="card">
+            <h4>Vehicle Distance</h4>
+            <div class="val" id="valDist">-- cm</div>
           </div>
         </div>
 
@@ -266,6 +270,16 @@
           logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
         }
       } 
+      else if (line.startsWith("#DATA:DIST:")) {
+        let dist = parseInt(line.split(":")[2]);
+        document.getElementById("valDist").innerText = (dist >= 999 ? ">200" : dist) + " cm";
+      }
+      else if (line === "#STATE:BLOCKED") {
+        logEvent("Obstacle detected near gate (<10 cm). Auto-close paused.", "warning");
+      }
+      else if (line === "#STATE:CLEAR") {
+        logEvent("Obstacle cleared.", "system");
+      }
       else if (line === "#LED:ON" || line === "#LED:GREEN") {
         updateBarrierUI("OPEN", "open");
       } 
