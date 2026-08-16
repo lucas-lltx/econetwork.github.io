@@ -148,193 +148,239 @@
 
   </div>
 
-  <script>
-    let port, writer, reader;
-    let maxTempThreshold = 35.0;
-    let logHistory = [];
+ <script>
+  let port = null;
+  let writer = null;
+  let reader = null;
+  let maxTempThreshold = 35.0;
+  let logHistory = [];
 
-    async function toggleConnect() {
-      if (port) {
-        await disconnectSerial();
-      } else {
-        await connectSerial();
-      }
+  async function toggleConnect() {
+    if (port) {
+      await disconnectSerial();
+    } else {
+      await connectSerial();
+    }
+  }
+
+  async function connectSerial() {
+    if (!("serial" in navigator)) {
+      alert("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
+      return;
     }
 
-    async function connectSerial() {
-      if (!("serial" in navigator)) {
-        alert("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
-        return;
-      }
-      try {
-        port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
+    try {
+      // 1. Prompt user to select COM Port
+      port = await navigator.serial.requestPort();
+      
+      // 2. Open serial stream at 9600 Baud
+      await port.open({ baudRate: 9600 });
 
-        document.getElementById("connStatus").className = "status-msg";
-        document.getElementById("connStatus").innerText = "Connected to EcoGate Master (Board 1)";
-        document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Disconnect";
+      // 3. Set up Text Encoder Stream
+      const textEncoder = new TextEncoderStream();
+      const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+      writer = textEncoder.writable.getWriter();
 
-        const textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(port.writable);
-        writer = textEncoder.writable.getWriter();
+      // 4. Update UI State
+      const connBtn = document.getElementById("connectBtn");
+      const statusMsg = document.getElementById("connStatus");
 
-        logEvent("Connection established successfully.", "success");
-        updateTempLimit();
-        readSerial();
-      } catch (err) {
-        document.getElementById("connStatus").className = "status-msg error";
-        document.getElementById("connStatus").innerText = "Connection Failed (" + err.message + ")";
-        logEvent("Failed to connect: " + err.message, "danger");
-      }
+      statusMsg.className = "status-msg";
+      statusMsg.innerText = "Connected to EcoGate Master (Board 1)";
+      connBtn.innerHTML = "<span>🔌</span> Disconnect";
+
+      logEvent("Connection established successfully.", "success");
+      updateTempLimit();
+
+      // 5. Start listening for incoming telemetry
+      readSerial();
+    } catch (err) {
+      // CLEANUP ON FAILURE: Reset variables so re-connecting is allowed
+      await cleanupSerialResources();
+      
+      const statusMsg = document.getElementById("connStatus");
+      const connBtn = document.getElementById("connectBtn");
+
+      statusMsg.className = "status-msg error";
+      statusMsg.innerText = "Connection Failed (" + err.message + ")";
+      connBtn.innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
+      
+      logEvent("Failed to connect: " + err.message, "danger");
     }
+  }
 
-    async function disconnectSerial() {
-      if (reader) await reader.cancel();
-      if (writer) await writer.close();
-      if (port) await port.close();
-      port = null;
+  async function disconnectSerial() {
+    await cleanupSerialResources();
 
-      document.getElementById("connStatus").className = "status-msg error";
-      document.getElementById("connStatus").innerText = "Disconnected";
-      document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
-      logEvent("Serial port disconnected.", "warning");
-    }
+    const statusMsg = document.getElementById("connStatus");
+    const connBtn = document.getElementById("connectBtn");
 
-    async function sendCommand(cmd) {
+    statusMsg.className = "status-msg error";
+    statusMsg.innerText = "Disconnected";
+    connBtn.innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
+    logEvent("Serial port disconnected.", "warning");
+  }
+
+  async function cleanupSerialResources() {
+    try {
+      if (reader) {
+        await reader.cancel();
+        reader.releaseLock();
+        reader = null;
+      }
       if (writer) {
-        await writer.write(cmd + "\n");
-        if (cmd === "#WEB:OPEN") {
-          updateBarrierUI("OPEN", "open");
-          logEvent("Manual command: Barrier opened.", "system");
-        } else if (cmd === "#WEB:CLOSE") {
-          updateBarrierUI("CLOSING...", "warn");
-          logEvent("Manual command: Barrier closing sequence.", "system");
-        } else if (cmd === "#WEB:ALARM_ON") {
-          updateAlarmUI("ALARM TRIGGERED", "alarm");
-          logEvent("Manual alarm activated!", "danger");
-        } else if (cmd === "#WEB:ALARM_OFF") {
-          updateAlarmUI("NORMAL (QUIET)", "normal");
-          logEvent("Alarm reset by operator.", "success");
-        }
-      } else {
-        alert("Connect to EcoGate first.");
+        await writer.close();
+        writer.releaseLock();
+        writer = null;
       }
+      if (port) {
+        await port.close();
+        port = null;
+      }
+    } catch (e) {
+      console.warn("Resource cleanup notice:", e);
+      port = null;
+      writer = null;
+      reader = null;
     }
+  }
 
-    function updateTempLimit() {
-      const val = parseFloat(document.getElementById("tempLimit").value);
-      if (!isNaN(val)) {
-        maxTempThreshold = val;
-        logEvent("Max Temp Alarm Limit updated to " + val.toFixed(1) + " °C", "system");
-        if (writer) {
-          writer.write("#SET:MAX_TEMP:" + val.toFixed(1) + "\n");
-        }
-      }
-    }
-
-    async function readSerial() {
-      const textDecoder = new TextDecoderStream();
-      port.readable.pipeTo(textDecoder.writable);
-      reader = textDecoder.readable.getReader();
-      let buffer = "";
-
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += value;
-          let lines = buffer.split("\n");
-          buffer = lines.pop();
-
-          for (let line of lines) {
-            parseTelemetry(line.trim());
-          }
-        }
-      } catch (err) {
-        console.error("Read error:", err);
-      }
-    }
-
-    function parseTelemetry(line) {
-      if (line.startsWith("#DATA:TEMP:")) {
-        let parts = line.split(":");
-        let tempVal = parseFloat(parts[2]);
-        let humVal = parts[4];
-
-        document.getElementById("valTemp").innerText = tempVal.toFixed(1) + " °C";
-        document.getElementById("valHum").innerText = humVal + " %";
-
-        // Local Thermal Alarm Evaluation
-        if (tempVal >= maxTempThreshold) {
-          updateAlarmUI("THERMAL ALARM (" + tempVal.toFixed(1) + "°C)", "alarm");
-          logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
-        }
-      } 
-      else if (line.startsWith("#DATA:DIST:")) {
-        let dist = parseInt(line.split(":")[2]);
-        document.getElementById("valDist").innerText = (dist >= 999 ? ">200" : dist) + " cm";
-      }
-      else if (line === "#STATE:BLOCKED") {
-        logEvent("Obstacle detected near gate (<10 cm). Auto-close paused.", "warning");
-      }
-      else if (line === "#STATE:CLEAR") {
-        logEvent("Obstacle cleared.", "system");
-      }
-      else if (line === "#LED:ON" || line === "#LED:GREEN") {
+  async function sendCommand(cmd) {
+    if (writer) {
+      await writer.write(cmd + "\n");
+      if (cmd === "#WEB:OPEN") {
         updateBarrierUI("OPEN", "open");
-      } 
-      else if (line === "#LED:OFF" || line === "#LED:RED") {
-        updateBarrierUI("CLOSED", "closed");
-        updateAlarmUI("NORMAL (QUIET)", "normal");
-      } 
-      else if (line === "#LED:WARN") {
+        logEvent("Manual command: Barrier opened.", "system");
+      } else if (cmd === "#WEB:CLOSE") {
         updateBarrierUI("CLOSING...", "warn");
-      } 
-      else if (line === "#LED:FLASH" || line === "#LED:FLASH_RED") {
+        logEvent("Manual command: Barrier closing sequence.", "system");
+      } else if (cmd === "#WEB:ALARM_ON") {
         updateAlarmUI("ALARM TRIGGERED", "alarm");
+        logEvent("Manual alarm activated!", "danger");
+      } else if (cmd === "#WEB:ALARM_OFF") {
+        updateAlarmUI("NORMAL (QUIET)", "normal");
+        logEvent("Alarm reset by operator.", "success");
+      }
+    } else {
+      alert("Connect to EcoGate first.");
+    }
+  }
+
+  function updateTempLimit() {
+    const val = parseFloat(document.getElementById("tempLimit").value);
+    if (!isNaN(val)) {
+      maxTempThreshold = val;
+      logEvent("Max Temp Alarm Limit updated to " + val.toFixed(1) + " °C", "system");
+      if (writer) {
+        writer.write("#SET:MAX_TEMP:" + val.toFixed(1) + "\n");
       }
     }
+  }
 
-    function updateBarrierUI(label, stateClass) {
-      const badge = document.getElementById("gateBarrierStatus");
-      badge.innerText = label;
-      badge.className = "status-block " + stateClass;
+  async function readSerial() {
+    const textDecoder = new TextDecoderStream();
+    const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+    reader = textDecoder.readable.getReader();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        let lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (let line of lines) {
+          parseTelemetry(line.trim());
+        }
+      }
+    } catch (err) {
+      console.error("Read stream interrupted:", err);
+    } finally {
+      reader.releaseLock();
     }
+  }
 
-    function updateAlarmUI(label, stateClass) {
-      const badge = document.getElementById("soundAlarmStatus");
-      badge.innerText = label;
-      badge.className = "status-block " + stateClass;
+  function parseTelemetry(line) {
+    if (line.startsWith("#DATA:TEMP:")) {
+      let parts = line.split(":");
+      let tempVal = parseFloat(parts[2]);
+      let humVal = parts[4];
+
+      document.getElementById("valTemp").innerText = tempVal.toFixed(1) + " °C";
+      document.getElementById("valHum").innerText = humVal + " %";
+
+      if (tempVal >= maxTempThreshold) {
+        updateAlarmUI("THERMAL ALARM (" + tempVal.toFixed(1) + "°C)", "alarm");
+        logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
+      }
+    } 
+    else if (line.startsWith("#DATA:DIST:")) {
+      let dist = parseInt(line.split(":")[2]);
+      document.getElementById("valDist").innerText = (dist >= 999 ? ">200" : dist) + " cm";
     }
-
-    function logEvent(msg, type = "system") {
-      const box = document.getElementById("logBox");
-      const timeStr = new Date().toLocaleTimeString();
-      const lineText = `[${timeStr}] ${msg}`;
-
-      logHistory.push(lineText);
-
-      const div = document.createElement("div");
-      div.className = `log-line ${type}`;
-      div.innerText = lineText;
-
-      box.appendChild(div);
-      box.scrollTop = box.scrollHeight;
+    else if (line === "#STATE:BLOCKED") {
+      logEvent("Obstacle detected near gate (<10 cm). Auto-close paused.", "warning");
     }
-
-    function clearLogs() {
-      document.getElementById("logBox").innerHTML = "";
-      logHistory = [];
-      logEvent("Logs cleared.", "system");
+    else if (line === "#STATE:CLEAR") {
+      logEvent("Obstacle cleared.", "system");
     }
-
-    function exportLogFile() {
-      const blob = new Blob([logHistory.join("\n")], { type: "text/plain" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "EcoGate_Event_Log.txt";
-      a.click();
+    else if (line === "#LED:ON" || line === "#LED:GREEN") {
+      updateBarrierUI("OPEN", "open");
+    } 
+    else if (line === "#LED:OFF" || line === "#LED:RED") {
+      updateBarrierUI("CLOSED", "closed");
+      updateAlarmUI("NORMAL (QUIET)", "normal");
+    } 
+    else if (line === "#LED:WARN") {
+      updateBarrierUI("CLOSING...", "warn");
+    } 
+    else if (line === "#LED:FLASH" || line === "#LED:FLASH_RED") {
+      updateAlarmUI("ALARM TRIGGERED", "alarm");
     }
-  </script>
+  }
+
+  function updateBarrierUI(label, stateClass) {
+    const badge = document.getElementById("gateBarrierStatus");
+    badge.innerText = label;
+    badge.className = "status-block " + stateClass;
+  }
+
+  function updateAlarmUI(label, stateClass) {
+    const badge = document.getElementById("soundAlarmStatus");
+    badge.innerText = label;
+    badge.className = "status-block " + stateClass;
+  }
+
+  function logEvent(msg, type = "system") {
+    const box = document.getElementById("logBox");
+    const timeStr = new Date().toLocaleTimeString();
+    const lineText = `[${timeStr}] ${msg}`;
+
+    logHistory.push(lineText);
+
+    const div = document.createElement("div");
+    div.className = `log-line ${type}`;
+    div.innerText = lineText;
+
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function clearLogs() {
+    document.getElementById("logBox").innerHTML = "";
+    logHistory = [];
+    logEvent("Logs cleared.", "system");
+  }
+
+  function exportLogFile() {
+    const blob = new Blob([logHistory.join("\n")], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "EcoGate_Event_Log.txt";
+    a.click();
+  }
+</script>
 </body>
 </html>
