@@ -3,351 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EcoGate Network - Central Command</title>
+  <title>EcoGate Network Control Center</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
-    h1 { color: #00d2d3; margin: 0 0 5px 0; text-align: center; }
-    p.subtitle { color: #888; font-size: 0.9rem; text-align: center; margin-bottom: 20px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #121316; color: #eaebd0; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
     
-    .connect-bar { text-align: center; margin-bottom: 25px; }
-    .btn-connect { background: #00d2d3; color: #121212; padding: 10px 22px; font-size: 0.95rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-    .btn-connect:hover { opacity: 0.9; transform: scale(1.02); }
-    .status-indicator { font-size: 0.85rem; margin-top: 6px; color: #ff6b6b; }
+    .header-section { text-align: center; margin-bottom: 25px; }
+    h1 { color: #2dd4bf; font-size: 2.2rem; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: #94a3b8; font-size: 0.95rem; }
 
-    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; }
-    @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
-
-    .card { background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-    .card-title { font-size: 1.1rem; color: #00d2d3; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 8px; }
-
-    .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-    .metric-box { background: #2a2a2a; padding: 15px; border-radius: 8px; text-align: center; }
-    .metric-val { font-size: 1.8rem; font-weight: bold; color: #00d2d3; margin-top: 5px; }
-    .status-box { padding: 10px; border-radius: 6px; font-weight: bold; background: #27ae60; text-align: center; font-size: 1.1rem; margin-top: 5px; transition: background-color 0.3s ease; }
-
-    .threshold-container { margin-top: 15px; background: #2a2a2a; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; }
-    .threshold-container label { font-size: 0.9rem; color: #aaa; }
-    .threshold-input { background: #121212; border: 1px solid #00d2d3; color: #00d2d3; padding: 6px 10px; font-weight: bold; font-size: 1rem; border-radius: 4px; width: 70px; text-align: center; }
-
-    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-    .btn { padding: 12px; font-size: 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: #fff; }
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { background: #444 !important; cursor: not-allowed; opacity: 0.4; }
+    .btn-connect { background: #00b4d8; color: #000; border: none; padding: 10px 24px; font-size: 1rem; font-weight: 700; border-radius: 6px; cursor: pointer; margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; }
+    .btn-connect:hover { background: #48cae4; }
     
-    .btn-open { background: #2ecc71; }
-    .btn-close { background: #e74c3c; }
-    .btn-alarm-on { background: #e67e22; }
-    .btn-alarm-off { background: #7f8c8d; }
+    .status-msg { margin-top: 10px; font-size: 0.85rem; color: #22c55e; text-align: center; }
+    .status-msg.error { color: #ef4444; }
 
-    .log-container { background: #0a0a0a; border: 1px solid #333; border-radius: 6px; height: 320px; overflow-y: auto; padding: 10px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
-    .log-entry { margin-bottom: 6px; padding: 3px 6px; border-radius: 3px; }
-    .log-info { color: #3498db; }
-    .log-warn { color: #f1c40f; }
-    .log-alert { color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
-    .log-success { color: #2ecc71; }
+    .layout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1100px; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
 
-    .log-actions { display: flex; justify-content: space-between; margin-top: 10px; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; background: #333; color: #ccc; border: none; border-radius: 4px; cursor: pointer; }
-    .btn-sm:hover { background: #444; color: #fff; }
+    .panel { background: #1c1e24; border: 1px solid #2e323b; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    .panel-title { color: #2dd4bf; font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid #2e323b; padding-bottom: 10px; }
+
+    /* Telemetry Cards */
+    .telemetry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+    .card { background: #252830; padding: 15px; border-radius: 6px; text-align: center; border: 1px solid #333742; }
+    .card h4 { color: #94a3b8; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; }
+    .card .val { font-size: 1.8rem; font-weight: 700; color: #00e5ff; }
+
+    /* Limit Input Box */
+    .limit-box { background: #252830; border: 1px solid #333742; border-radius: 6px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .limit-box label { font-size: 0.88rem; color: #94a3b8; }
+    .limit-input { background: #121316; border: 1px solid #00e5ff; color: #00e5ff; width: 90px; padding: 6px 10px; border-radius: 4px; font-size: 1.1rem; font-weight: 700; text-align: center; outline: none; }
+
+    /* Status Indicators */
+    .status-block { width: 100%; padding: 12px; border-radius: 6px; font-weight: 700; text-align: center; text-transform: uppercase; font-size: 1rem; margin-bottom: 10px; letter-spacing: 0.5px; }
+    .status-block.closed { background: #ef4444; color: #fff; }
+    .status-block.open { background: #22c55e; color: #fff; }
+    .status-block.warn { background: #f59e0b; color: #fff; }
+    .status-block.normal { background: #22c55e; color: #fff; }
+    .status-block.alarm { background: #e11d48; color: #fff; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    /* Override Control Buttons */
+    .control-sublabel { font-size: 0.8rem; color: #94a3b8; margin: 12px 0 6px 0; }
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { padding: 12px; font-weight: 700; font-size: 0.88rem; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.9; }
+    .btn-open { background: #22c55e; color: #fff; }
+    .btn-close { background: #ef4444; color: #fff; }
+    .btn-trigger { background: #f97316; color: #fff; }
+    .btn-reset { background: #64748b; color: #fff; }
+
+    /* Event Log Panel */
+    .log-box { background: #121316; border: 1px solid #2e323b; border-radius: 6px; height: 350px; padding: 12px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+    .log-line { line-height: 1.4; }
+    .log-line.system { color: #38bdf8; }
+    .log-line.success { color: #4ade80; }
+    .log-line.warning { color: #fbbf24; }
+    .log-line.danger { color: #f87171; }
+
+    .log-actions { display: flex; justify-content: space-between; }
+    .btn-sm { background: #333742; color: #cbd5e1; border: none; padding: 8px 14px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; font-weight: 600; }
+    .btn-sm:hover { background: #475569; }
   </style>
 </head>
 <body>
 
-  <h1>EcoGate Network</h1>
-  <p class="subtitle">Direct Web Serial Control & Safety Station</p>
-
-  <div class="connect-bar">
-    <button class="btn-connect" onclick="connectSerial()">🔌 Connect to EcoGate (Board 1)</button>
-    <div class="status-indicator" id="connStatus">Status: Disconnected</div>
+  <div class="header-section">
+    <h1>EcoGate Network</h1>
+    <p class="subtitle">Direct Web Serial Control & Safety Station</p>
+    <button class="btn-connect" id="connectBtn" onclick="toggleConnect()">
+      <span>🔌</span> Connect to EcoGate (Board 1)
+    </button>
+    <div class="status-msg" id="connStatus">Disconnected</div>
   </div>
 
-  <div class="main-grid">
+  <div class="layout-grid">
     
-    <!-- LEFT PANEL: Telemetry & Controls -->
-    <div>
-      <div class="card" style="margin-bottom: 20px;">
-        <div class="card-title">System Telemetry & Thermal Protection</div>
-        <div class="metric-grid">
-          <div class="metric-box">
-            <div>Temperature</div>
-            <div class="metric-val" id="tempVal">-- °C</div>
+    <!-- LEFT COLUMN: Telemetry & Overrides -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <div class="panel">
+        <h3 class="panel-title">System Telemetry & Thermal Protection</h3>
+        
+        <div class="telemetry-row">
+          <div class="card">
+            <h4>Temperature</h4>
+            <div class="val" id="valTemp">-- °C</div>
           </div>
-          <div class="metric-box">
-            <div>Humidity</div>
-            <div class="metric-val" id="humVal">-- %</div>
+          <div class="card">
+            <h4>Humidity</h4>
+            <div class="val" id="valHum">-- %</div>
           </div>
         </div>
 
-        <!-- Temperature Threshold Limit Input -->
-        <div class="threshold-container">
+        <div class="limit-box">
           <label for="tempLimit">Max Temp Alarm Limit (°C):</label>
-          <input type="number" id="tempLimit" class="threshold-input" value="35.0" step="0.5" onchange="checkTempThreshold()">
+          <input type="number" id="tempLimit" class="limit-input" value="35.0" step="0.5" onchange="updateTempLimit()">
         </div>
 
-        <div style="margin-top: 15px;">
-          <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Gate Barrier Status</div>
-          <div class="status-box" id="gateStatus" style="background: #e74c3c;">CLOSED</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Gate Barrier Status</div>
+        <div id="gateBarrierStatus" class="status-block closed">CLOSED</div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Sound / Alarm Status</div>
+        <div id="soundAlarmStatus" class="status-block normal">NORMAL (QUIET)</div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Manual Overrides</h3>
+        
+        <div class="control-sublabel">Barrier Control:</div>
+        <div class="btn-group">
+          <button class="btn btn-open" onclick="sendCommand('#WEB:OPEN')">Override Open</button>
+          <button class="btn btn-close" onclick="sendCommand('#WEB:CLOSE')">Override Close</button>
         </div>
-        <div style="margin-top: 10px;">
-          <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Sound / Alarm Status</div>
-          <div class="status-box" id="alarmStatus" style="background: #27ae60;">NORMAL (QUIET)</div>
+
+        <div class="control-sublabel">Alarm Override:</div>
+        <div class="btn-group">
+          <button class="btn btn-trigger" onclick="sendCommand('#WEB:ALARM_ON')">Trigger Alarm</button>
+          <button class="btn btn-reset" onclick="sendCommand('#WEB:ALARM_OFF')">Reset Alarm</button>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Manual Overrides</div>
-        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Barrier Control:</div>
-        <div class="btn-grid">
-          <button class="btn btn-open" id="btnOpen" disabled onclick="sendSerial('#WEB:OPEN\n')">OVERRIDE OPEN</button>
-          <button class="btn btn-close" id="btnClose" disabled onclick="sendSerial('#WEB:CLOSE\n')">OVERRIDE CLOSE</button>
-        </div>
-        <div style="font-size: 0.85rem; color: #aaa; margin-top: 15px; margin-bottom: 5px;">Alarm Override:</div>
-        <div class="btn-grid">
-          <button class="btn btn-alarm-on" id="btnAlarmOn" disabled onclick="triggerContinuousAlarm('Manual Web Override')">TRIGGER ALARM</button>
-          <button class="btn btn-alarm-off" id="btnAlarmOff" disabled onclick="stopContinuousAlarm()">RESET ALARM</button>
-        </div>
-      </div>
     </div>
 
-    <!-- RIGHT PANEL: Operational Event Logs -->
-    <div class="card">
-      <div class="card-title">Real-Time Event Log</div>
-      <div class="log-container" id="logBox">
-        <div class="log-entry log-info">[System] Awaiting hardware serial connection...</div>
+    <!-- RIGHT COLUMN: Real-Time Event Log -->
+    <div class="panel" style="display: flex; flex-direction: column;">
+      <h3 class="panel-title">Real-Time Event Log</h3>
+      
+      <div class="log-box" id="logBox">
+        <div class="log-line system">[System] System initialized. Ready to connect.</div>
       </div>
+
       <div class="log-actions">
         <button class="btn-sm" onclick="clearLogs()">Clear Console</button>
-        <button class="btn-sm" onclick="downloadLogs()">Export Log File</button>
+        <button class="btn-sm" onclick="exportLogFile()">Export Log File</button>
       </div>
     </div>
 
   </div>
 
   <script>
-    let port;
-    let writer;
-    let audioCtx = null;
-    let sirenInterval = null;
-    let isAlarmActive = false;
-    let currentTemp = null;
+    let port, writer, reader;
+    let maxTempThreshold = 35.0;
+    let logHistory = [];
 
-    // Continuous Dual-Tone Siren Synthesizer
-    function startSirenLoop() {
-      if (sirenInterval) return; // Already running
-
-      sirenInterval = setInterval(() => {
-        try {
-          if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          }
-          if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
-
-          const now = audioCtx.currentTime;
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(950, now);
-          osc.frequency.exponentialRampToValueAtTime(450, now + 0.35);
-
-          gain.gain.setValueAtTime(0.35, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-
-          osc.start(now);
-          osc.stop(now + 0.35);
-        } catch (e) {
-          console.error("Audio playback error:", e);
-        }
-      }, 400); // Pulse siren tone every 400ms
-    }
-
-    function stopSirenLoop() {
-      if (sirenInterval) {
-        clearInterval(sirenInterval);
-        sirenInterval = null;
-      }
-    }
-
-    function triggerContinuousAlarm(reason = "System Trigger") {
-      if (!isAlarmActive) {
-        isAlarmActive = true;
-        updateAlarmUI('⚠️ ALARM TRIGGERED', '#e74c3c');
-        addLog(`[ALERT] Continuous Alarm Active! (${reason})`, "log-alert");
-        sendSerial('#WEB:ALARM_ON\n');
-        startSirenLoop();
-      }
-    }
-
-    function stopContinuousAlarm() {
-      if (isAlarmActive) {
-        isAlarmActive = false;
-        stopSirenLoop();
-        updateAlarmUI('NORMAL (QUIET)', '#27ae60');
-        addLog("[System] Alarm silenced and reset.", "log-success");
-        sendSerial('#WEB:ALARM_OFF\n');
+    async function toggleConnect() {
+      if (port) {
+        await disconnectSerial();
+      } else {
+        await connectSerial();
       }
     }
 
     async function connectSerial() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
       if (!("serial" in navigator)) {
-        alert("Web Serial API is not supported in this browser. Please use Google Chrome or MS Edge.");
+        alert("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
         return;
       }
-
       try {
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 9600 });
 
-        document.getElementById('connStatus').innerText = "Status: Connected to EcoGate Hardware";
-        document.getElementById('connStatus').style.color = "#2ecc71";
-        
-        ['btnOpen', 'btnClose', 'btnAlarmOn', 'btnAlarmOff'].forEach(id => {
-          document.getElementById(id).disabled = false;
-        });
-
-        addLog("[System] Serial connection established @ 9600 baud.", "log-success");
+        document.getElementById("connStatus").className = "status-msg";
+        document.getElementById("connStatus").innerText = "Connected to EcoGate Master (Board 1)";
+        document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Disconnect";
 
         const textEncoder = new TextEncoderStream();
         textEncoder.readable.pipeTo(port.writable);
         writer = textEncoder.writable.getWriter();
 
-        readSerialStream();
-
+        logEvent("Connection established successfully.", "success");
+        updateTempLimit();
+        readSerial();
       } catch (err) {
-        console.error("Serial Connection Failed:", err);
-        document.getElementById('connStatus').innerText = `Status: Connection Failed (${err.message})`;
-        addLog(`[Error] ${err.message}`, "log-alert");
+        document.getElementById("connStatus").className = "status-msg error";
+        document.getElementById("connStatus").innerText = "Connection Failed (" + err.message + ")";
+        logEvent("Failed to connect: " + err.message, "danger");
       }
     }
 
-    async function readSerialStream() {
+    async function disconnectSerial() {
+      if (reader) await reader.cancel();
+      if (writer) await writer.close();
+      if (port) await port.close();
+      port = null;
+
+      document.getElementById("connStatus").className = "status-msg error";
+      document.getElementById("connStatus").innerText = "Disconnected";
+      document.getElementById("connectBtn").innerHTML = "<span>🔌</span> Connect to EcoGate (Board 1)";
+      logEvent("Serial port disconnected.", "warning");
+    }
+
+    async function sendCommand(cmd) {
+      if (writer) {
+        await writer.write(cmd + "\n");
+        if (cmd === "#WEB:OPEN") {
+          updateBarrierUI("OPEN", "open");
+          logEvent("Manual command: Barrier opened.", "system");
+        } else if (cmd === "#WEB:CLOSE") {
+          updateBarrierUI("CLOSING...", "warn");
+          logEvent("Manual command: Barrier closing sequence.", "system");
+        } else if (cmd === "#WEB:ALARM_ON") {
+          updateAlarmUI("ALARM TRIGGERED", "alarm");
+          logEvent("Manual alarm activated!", "danger");
+        } else if (cmd === "#WEB:ALARM_OFF") {
+          updateAlarmUI("NORMAL (QUIET)", "normal");
+          logEvent("Alarm reset by operator.", "success");
+        }
+      } else {
+        alert("Connect to EcoGate first.");
+      }
+    }
+
+    function updateTempLimit() {
+      const val = parseFloat(document.getElementById("tempLimit").value);
+      if (!isNaN(val)) {
+        maxTempThreshold = val;
+        logEvent("Max Temp Alarm Limit updated to " + val.toFixed(1) + " °C", "system");
+        if (writer) {
+          writer.write("#SET:MAX_TEMP:" + val.toFixed(1) + "\n");
+        }
+      }
+    }
+
+    async function readSerial() {
       const textDecoder = new TextDecoderStream();
       port.readable.pipeTo(textDecoder.writable);
-      const reader = textDecoder.readable.getReader();
+      reader = textDecoder.readable.getReader();
       let buffer = "";
 
       try {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          
           buffer += value;
           let lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (let line of lines) {
-            parseHardwareLine(line.trim());
+            parseTelemetry(line.trim());
           }
         }
       } catch (err) {
-        addLog(`[Read Error] ${err.message}`, "log-alert");
-      } finally {
-        reader.releaseLock();
+        console.error("Read error:", err);
       }
     }
 
-    function parseHardwareLine(data) {
-      if (!data) return;
+    function parseTelemetry(line) {
+      if (line.startsWith("#DATA:TEMP:")) {
+        let parts = line.split(":");
+        let tempVal = parseFloat(parts[2]);
+        let humVal = parts[4];
 
-      // Telemetry Data Packets (#DATA:TEMP:28.5:HUM:65.0)
-      if (data.includes('#DATA:TEMP:')) {
-        const parts = data.split(':');
-        currentTemp = parseFloat(parts[2]);
-        const humVal = parts[4];
+        document.getElementById("valTemp").innerText = tempVal.toFixed(1) + " °C";
+        document.getElementById("valHum").innerText = humVal + " %";
 
-        document.getElementById('tempVal').innerText = `${currentTemp.toFixed(1)} °C`;
-        document.getElementById('humVal').innerText = `${humVal} %`;
-        
-        checkTempThreshold();
-      }
-      // Gate Open State
-      else if (data.includes('#LED:GREEN')) {
-        updateGateUI('OPEN', '#2ecc71');
-        addLog("[Barrier] Gate opened successfully.", "log-success");
-      } 
-      // Gate Closed State
-      else if (data.includes('#LED:RED')) {
-        updateGateUI('CLOSED', '#e74c3c');
-        if (!isAlarmActive) {
-          updateAlarmUI('NORMAL (QUIET)', '#27ae60');
+        // Local Thermal Alarm Evaluation
+        if (tempVal >= maxTempThreshold) {
+          updateAlarmUI("THERMAL ALARM (" + tempVal.toFixed(1) + "°C)", "alarm");
+          logEvent("CRITICAL: Temperature exceeded limit (" + tempVal.toFixed(1) + " °C >= " + maxTempThreshold + " °C)!", "danger");
         }
-        addLog("[Barrier] Gate closed. System secure.", "log-info");
       } 
-      // Sound / Tamper Warning Triggered from Hardware
-      else if (data.includes('#LED:FLASH_RED')) {
-        triggerContinuousAlarm("Hardware Sound/Tamper Sensor");
-      }
-      // Gate Closing Warning Sequence
-      else if (data.includes('#LED:WARN')) {
-        updateGateUI('CLOSING...', '#f39c12');
-        addLog("[Barrier] Vehicle passed. Initiating closing sequence...", "log-warn");
-      }
-      // Raw Serial Fallback
-      else {
-        addLog(`[Hardware RAW] ${data}`, "log-info");
-      }
-    }
-
-    function checkTempThreshold() {
-      if (currentTemp === null) return;
-
-      const limit = parseFloat(document.getElementById('tempLimit').value);
-      if (!isNaN(limit) && currentTemp > limit) {
-        triggerContinuousAlarm(`Temperature Exceeded: ${currentTemp}°C > Limit ${limit}°C`);
+      else if (line === "#LED:ON" || line === "#LED:GREEN") {
+        updateBarrierUI("OPEN", "open");
+      } 
+      else if (line === "#LED:OFF" || line === "#LED:RED") {
+        updateBarrierUI("CLOSED", "closed");
+        updateAlarmUI("NORMAL (QUIET)", "normal");
+      } 
+      else if (line === "#LED:WARN") {
+        updateBarrierUI("CLOSING...", "warn");
+      } 
+      else if (line === "#LED:FLASH" || line === "#LED:FLASH_RED") {
+        updateAlarmUI("ALARM TRIGGERED", "alarm");
       }
     }
 
-    function updateGateUI(statusText, colorHex) {
-      const el = document.getElementById('gateStatus');
-      el.innerText = statusText;
-      el.style.backgroundColor = colorHex;
+    function updateBarrierUI(label, stateClass) {
+      const badge = document.getElementById("gateBarrierStatus");
+      badge.innerText = label;
+      badge.className = "status-block " + stateClass;
     }
 
-    function updateAlarmUI(statusText, colorHex) {
-      const el = document.getElementById('alarmStatus');
-      el.innerText = statusText;
-      el.style.backgroundColor = colorHex;
+    function updateAlarmUI(label, stateClass) {
+      const badge = document.getElementById("soundAlarmStatus");
+      badge.innerText = label;
+      badge.className = "status-block " + stateClass;
     }
 
-    async function sendSerial(command) {
-      if (writer) {
-        await writer.write(command);
-        addLog(`[Command Sent] ${command.trim()}`, "log-warn");
-      }
-    }
+    function logEvent(msg, type = "system") {
+      const box = document.getElementById("logBox");
+      const timeStr = new Date().toLocaleTimeString();
+      const lineText = `[${timeStr}] ${msg}`;
 
-    function addLog(message, cssClass = "log-info") {
-      const logBox = document.getElementById('logBox');
-      const timeString = new Date().toLocaleTimeString();
-      const entry = document.createElement('div');
-      entry.className = `log-entry ${cssClass}`;
-      entry.innerText = `[${timeString}] ${message}`;
-      logBox.appendChild(entry);
-      logBox.scrollTop = logBox.scrollHeight;
+      logHistory.push(lineText);
+
+      const div = document.createElement("div");
+      div.className = `log-line ${type}`;
+      div.innerText = lineText;
+
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
     }
 
     function clearLogs() {
-      document.getElementById('logBox').innerHTML = '<div class="log-entry log-info">[System] Logs cleared.</div>';
+      document.getElementById("logBox").innerHTML = "";
+      logHistory = [];
+      logEvent("Logs cleared.", "system");
     }
 
-    function downloadLogs() {
-      const logText = Array.from(document.querySelectorAll('.log-entry')).map(e => e.innerText).join('\n');
-      const blob = new Blob([logText], { type: 'text/plain' });
-      const a = document.createElement('a');
+    function exportLogFile() {
+      const blob = new Blob([logHistory.join("\n")], { type: "text/plain" });
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `ecogate-log-${new Date().toISOString().slice(0,10)}.txt`;
+      a.download = "EcoGate_Event_Log.txt";
       a.click();
     }
   </script>
